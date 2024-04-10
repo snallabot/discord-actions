@@ -54,6 +54,7 @@ router.post("/sendBroadcast", async (ctx) => {
             "Content-Type": "application/json"
         }
     }).then(res => res.json() as Promise<BroadcastConfigurationEvents>)
+    console.log(serverConfiguration)
     const sortedEvents = serverConfiguration.BROADCAST_CONFIGURATION.sort((a: BroadcastConfiguration, b: BroadcastConfiguration) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     if (sortedEvents.length === 0) {
         console.error(`${discordServer} is not configured for Broadcasts`)
