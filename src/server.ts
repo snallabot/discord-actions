@@ -18,9 +18,7 @@ async function requestDiscord(
 ) {
     // append endpoint to root API URL
     const url = "https://discord.com/api/v9/" + endpoint
-    // Stringify payloads
     if (options.body) options.body = JSON.stringify(options.body)
-    // Use node-fetch to make requests
     let tries = 0
     while (tries < maxTries) {
         const res = await fetch(url, {
