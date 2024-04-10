@@ -63,6 +63,7 @@ router.post("/sendBroadcast", async (ctx) => {
         const channel = configuration.channel_id
         const role = configuration.role ? `<@&${configuration.role}>` : ""
         await requestDiscord(`channels/${channel}/messages`, {
+            method: "POST",
             body: {
                 content: `${role} ${broadcastEvent.title}\n\n${broadcastEvent.video}`
             }
