@@ -46,6 +46,7 @@ async function requestDiscord(
 router.post("/sendBroadcast", async (ctx) => {
     const broadcastEvent = ctx.request.body as MaddenBroadcast
     const discordServer = broadcastEvent.key
+    console.log(discordServer)
     const serverConfiguration = await fetch("https://snallabot-event-sender-b869b2ccfed0.herokuapp.com/query", {
         method: "POST",
         body: JSON.stringify({ event_types: ["BROADCAST_CONFIGURATION"], key: discordServer }),
