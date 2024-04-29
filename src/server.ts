@@ -49,7 +49,7 @@ router.post("/sendBroadcast", async (ctx) => {
     console.log(discordServer)
     const serverConfiguration = await fetch("https://snallabot-event-sender-b869b2ccfed0.herokuapp.com/query", {
         method: "POST",
-        body: JSON.stringify({ event_types: ["BROADCAST_CONFIGURATION"], key: discordServer }),
+        body: JSON.stringify({ event_types: ["BROADCAST_CONFIGURATION"], key: discordServer, after: 0 }),
         headers: {
             "Content-Type": "application/json"
         }
