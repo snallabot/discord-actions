@@ -10,7 +10,7 @@ export async function requestDiscord(
     maxTries = 5
 ) {
     // append endpoint to root API URL
-    const url = "https://discord.com/api/v9/" + endpoint
+    const url = "https://discord.com/api/v10/" + endpoint
     if (options.body) options.body = JSON.stringify(options.body)
     let tries = 0
     while (tries < maxTries) {
