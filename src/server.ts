@@ -1,6 +1,9 @@
-import Koa from "koa"
+import Koa, { ParameterizedContext } from "koa"
 import Router from "@koa/router"
 import bodyParser from "@koa/bodyparser"
+import { requestDiscord, discordInteractionVerifier } from "./discord_utils"
+import { APIInteraction, InteractionType, InteractionResponseType, APIChatInputApplicationCommandGuildInteraction } from "discord-api-types/payloads"
+import { handleCommand } from "./commands_handler"
 
 const app = new Koa()
 const router = new Router()
@@ -9,38 +12,38 @@ const router = new Router()
 type MaddenBroadcast = { key: string, event_type: "MADDEN_BROADCAST", delivery: "EVENT_SOURCE", title: string, video: string }
 type BroadcastConfiguration = { channel_id: string, role?: string, id: string, timestamp: string }
 type BroadcastConfigurationEvents = { "BROADCAST_CONFIGURATION": Array<BroadcastConfiguration> }
+if (!process.env.PUBLIC_KEY) {
+    throw new Error("No Public Key passed for interaction verification")
+}
+if (!process.env.TEST_PUBLIC_KEY) {
+    throw new Error("No Test Public Key passed for interaction verification")
+}
 
-async function requestDiscord(
-    endpoint: string,
-    options: { [key: string]: any },
-    token = process.env.DISCORD_TOKEN,
-    maxTries = 5
-) {
-    // append endpoint to root API URL
-    const url = "https://discord.com/api/v9/" + endpoint
-    if (options.body) options.body = JSON.stringify(options.body)
-    let tries = 0
-    while (tries < maxTries) {
-        const res = await fetch(url, {
-            headers: {
-                Authorization: `Bot ${token}`,
-                "Content-Type": "application/json; charset=UTF-8",
-            },
-            ...options,
-        })
-        if (!res.ok) {
-            const data = await res.json()
-            if (data["retry_after"]) {
-                tries = tries + 1
-                await new Promise((r) => setTimeout(r, data["retry_after"] * 1000))
-            } else {
-                console.log(res)
-                throw new Error(JSON.stringify(data))
-            }
-        } else {
-            return res
-        }
+const prodBotVerifier = discordInteractionVerifier(process.env.PUBLIC_KEY)
+const testBotVerifier = discordInteractionVerifier(process.env.TEST_PUBLIC_KEY)
+
+async function handleInteraction(ctx: ParameterizedContext, verifier: (ctx: ParameterizedContext) => Promise<boolean>) {
+    const verified = await verifier(ctx)
+    if (!verified) {
+        ctx.status = 401
+        return
     }
+    const interaction = ctx.request.body as APIInteraction
+    const { type: interactionType } = interaction
+    if (interactionType === InteractionType.Ping) {
+        ctx.status = 200
+        ctx.body = { type: InteractionResponseType.Pong }
+        return
+    }
+    if (interactionType === InteractionType.ApplicationCommand) {
+        const slashCommandInteraction = interaction as APIChatInputApplicationCommandGuildInteraction
+        const { token, guild_id, data, member } = slashCommandInteraction
+        const { name } = data
+        await handleCommand({ command_name: name, token, guild_id, data, member }, ctx)
+        return
+    }
+    // anything else fail the command
+    ctx.status = 404
 }
 
 router.post("/sendBroadcast", async (ctx) => {
@@ -70,6 +73,10 @@ router.post("/sendBroadcast", async (ctx) => {
         })
     }
     ctx.status = 200
+}).post("/slashCommand", async (ctx) => {
+    await handleInteraction(ctx, prodBotVerifier)
+}).post("/testSlashCommand", async (ctx) => {
+    await handleInteraction(ctx, testBotVerifier)
 })
 
 app.use(bodyParser({ enableTypes: ["json"], encoding: "utf-8" }))

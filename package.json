@@ -10,7 +10,7 @@
     "dev": "nodemon src/index.ts"
   },
   "engines": {
-  "node": "20.x"
+    "node": "20.x"
   },
   "repository": {
     "type": "git",
@@ -25,6 +25,8 @@
   "dependencies": {
     "@koa/bodyparser": "^5.0.0",
     "@koa/router": "^12.0.1",
+    "discord-api-types": "^0.37.94",
+    "discord-interactions": "^4.0.0",
     "koa": "^2.15.0",
     "undici": "^6.6.2"
   },
@@ -40,6 +42,6 @@
     "supertest": "^6.3.4",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.2",
-      "typescript": "^5.3.3"
+    "typescript": "^5.3.3"
   }
 }
