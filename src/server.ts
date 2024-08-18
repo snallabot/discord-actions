@@ -3,9 +3,9 @@ import Router from "@koa/router"
 import bodyParser from "@koa/bodyparser"
 import { initializeApp, cert } from "firebase-admin/app"
 import { getFirestore } from "firebase-admin/firestore"
-import { DiscordClient, createClient } from "./discord_utils"
+import { CommandMode, DiscordClient, createClient } from "./discord_utils"
 import { APIInteraction, InteractionType, InteractionResponseType, APIChatInputApplicationCommandGuildInteraction } from "discord-api-types/payloads"
-import { handleCommand } from "./commands_handler"
+import { handleCommand, commandsInstaller } from "./commands_handler"
 
 const app = new Koa()
 const router = new Router()
@@ -74,6 +74,7 @@ async function handleInteraction(ctx: ParameterizedContext, client: DiscordClien
         return
     }
     if (interactionType === InteractionType.ApplicationCommand) {
+
         const slashCommandInteraction = interaction as APIChatInputApplicationCommandGuildInteraction
         const { token, guild_id, data, member } = slashCommandInteraction
         const { name } = data
@@ -83,6 +84,8 @@ async function handleInteraction(ctx: ParameterizedContext, client: DiscordClien
     // anything else fail the command
     ctx.status = 404
 }
+
+type CommandsHandlerRequest = { commandNames?: string[], mode: CommandMode, guildId?: string }
 
 router.post("/sendBroadcast", async (ctx) => {
     const broadcastEvent = ctx.request.body as MaddenBroadcast
@@ -114,6 +117,13 @@ router.post("/sendBroadcast", async (ctx) => {
     await handleInteraction(ctx, prodClient)
 }).post("/testSlashCommand", async (ctx) => {
     await handleInteraction(ctx, testClient)
+}).post("/productionCommandsHandler", async (ctx) => {
+    const req = ctx.request.body as CommandsHandlerRequest
+    await commandsInstaller(prodClient, req.commandNames || [], req.mode, req.guildId)
+}).post("/testCommandsHandler", async (ctx) => {
+    const req = ctx.request.body as CommandsHandlerRequest
+    await commandsInstaller(testClient, req.commandNames || [], req.mode, req.guildId)
+    ctx.status = 200
 })
 
 app.use(bodyParser({ enableTypes: ["json"], encoding: "utf-8" }))
