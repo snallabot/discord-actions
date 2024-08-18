@@ -2,7 +2,7 @@ import { ParameterizedContext } from "koa"
 import { APIChatInputApplicationCommandInteractionData, APIInteractionGuildMember } from "discord-api-types/payloads"
 import { RESTPostAPIApplicationCommandsJSONBody } from "discord-api-types/v10"
 import leagueExportHandler from "./commands/league_export"
-import { createMessageResponse, respond, DiscordClient } from "./discord_utils"
+import { createMessageResponse, respond, DiscordClient, CommandMode } from "./discord_utils"
 import { Firestore } from "firebase-admin/firestore"
 
 export type Command = { command_name: string, token: string, guild_id: string, data: APIChatInputApplicationCommandInteractionData, member: APIInteractionGuildMember }
@@ -36,4 +36,17 @@ export async function handleCommand(command: Command, ctx: ParameterizedContext,
         ctx.status = 200
         respond(ctx, createMessageResponse(`command ${commandName} not implemented`))
     }
+}
+
+
+
+export async function commandsInstaller(client: DiscordClient, commandNames: string[], mode: CommandMode, guildId?: string) {
+    const commandsToHandle = commandNames.length === 0 ? Object.keys(SlashCommands) : commandNames
+    await Promise.all(commandsToHandle.map(async (name) => {
+        const handler = SlashCommands[name]
+        if (handler) {
+            await client.handleSlashCommand(mode, handler.commandDefinition(), guildId)
+            console.log(`${mode} ${name}`)
+        }
+    }))
 }
