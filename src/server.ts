@@ -1,29 +1,67 @@
 import Koa, { ParameterizedContext } from "koa"
 import Router from "@koa/router"
 import bodyParser from "@koa/bodyparser"
-import { requestDiscord, discordInteractionVerifier } from "./discord_utils"
+import { initializeApp, cert } from "firebase-admin/app"
+import { getFirestore } from "firebase-admin/firestore"
+import { DiscordClient, createClient } from "./discord_utils"
 import { APIInteraction, InteractionType, InteractionResponseType, APIChatInputApplicationCommandGuildInteraction } from "discord-api-types/payloads"
 import { handleCommand } from "./commands_handler"
 
 const app = new Koa()
 const router = new Router()
 
+function setupFirebase() {
+    // production, use firebase with SA credentials passed from environment
+    if (process.env.SERVICE_ACCOUNT) {
+        const serviceAccount = JSON.parse(process.env.SERVICE_ACCOUNT)
+        initializeApp({
+            credential: cert(serviceAccount)
+        })
+
+    }
+    // dev, use firebase emulator
+    else {
+        if (!process.env.FIRESTORE_EMULATOR_HOST) {
+            throw new Error("Firestore emulator is not running!")
+        }
+        initializeApp({ projectId: "dev" })
+    }
+    return getFirestore()
+}
+
+const db = setupFirebase()
 
 type MaddenBroadcast = { key: string, event_type: "MADDEN_BROADCAST", delivery: "EVENT_SOURCE", title: string, video: string }
 type BroadcastConfiguration = { channel_id: string, role?: string, id: string, timestamp: string }
 type BroadcastConfigurationEvents = { "BROADCAST_CONFIGURATION": Array<BroadcastConfiguration> }
+
 if (!process.env.PUBLIC_KEY) {
     throw new Error("No Public Key passed for interaction verification")
 }
 if (!process.env.TEST_PUBLIC_KEY) {
     throw new Error("No Test Public Key passed for interaction verification")
 }
+if (!process.env.DISCORD_TOKEN) {
+    throw new Error("No Discord Token passed for interaction verification")
+}
+if (!process.env.TEST_DISCORD_TOKEN) {
+    throw new Error("No Test Discord Token passed for interaction verification")
+}
+if (!process.env.APP_ID) {
+    throw new Error("No App Id passed for interaction verification")
+}
+if (!process.env.TEST_APP_ID) {
+    throw new Error("No Test App Id passed for interaction verification")
+}
 
-const prodBotVerifier = discordInteractionVerifier(process.env.PUBLIC_KEY)
-const testBotVerifier = discordInteractionVerifier(process.env.TEST_PUBLIC_KEY)
+const prodSettings = { publicKey: process.env.PUBLIC_KEY, botToken: process.env.DISCORD_TOKEN, appId: process.env.APP_ID }
+const testSettings = { publicKey: process.env.TEST_PUBLIC_KEY, botToken: process.env.TEST_DISCORD_TOKEN, appId: process.env.TEST_APP_ID }
 
-async function handleInteraction(ctx: ParameterizedContext, verifier: (ctx: ParameterizedContext) => Promise<boolean>) {
-    const verified = await verifier(ctx)
+const prodClient = createClient(prodSettings)
+const testClient = createClient(testSettings)
+
+async function handleInteraction(ctx: ParameterizedContext, client: DiscordClient) {
+    const verified = await client.interactionVerifier(ctx)
     if (!verified) {
         ctx.status = 401
         return
@@ -39,7 +77,7 @@ async function handleInteraction(ctx: ParameterizedContext, verifier: (ctx: Para
         const slashCommandInteraction = interaction as APIChatInputApplicationCommandGuildInteraction
         const { token, guild_id, data, member } = slashCommandInteraction
         const { name } = data
-        await handleCommand({ command_name: name, token, guild_id, data, member }, ctx)
+        await handleCommand({ command_name: name, token, guild_id, data, member }, ctx, client, db)
         return
     }
     // anything else fail the command
@@ -49,7 +87,6 @@ async function handleInteraction(ctx: ParameterizedContext, verifier: (ctx: Para
 router.post("/sendBroadcast", async (ctx) => {
     const broadcastEvent = ctx.request.body as MaddenBroadcast
     const discordServer = broadcastEvent.key
-    console.log(discordServer)
     const serverConfiguration = await fetch("https://snallabot-event-sender-b869b2ccfed0.herokuapp.com/query", {
         method: "POST",
         body: JSON.stringify({ event_types: ["BROADCAST_CONFIGURATION"], key: discordServer, after: 0 }),
@@ -65,7 +102,7 @@ router.post("/sendBroadcast", async (ctx) => {
         const configuration = sortedEvents[0]
         const channel = configuration.channel_id
         const role = configuration.role ? `<@&${configuration.role}>` : ""
-        await requestDiscord(`channels/${channel}/messages`, {
+        await prodClient.requestDiscord(`channels/${channel}/messages`, {
             method: "POST",
             body: {
                 content: `${role} ${broadcastEvent.title}\n\n${broadcastEvent.video}`
@@ -74,9 +111,9 @@ router.post("/sendBroadcast", async (ctx) => {
     }
     ctx.status = 200
 }).post("/slashCommand", async (ctx) => {
-    await handleInteraction(ctx, prodBotVerifier)
+    await handleInteraction(ctx, prodClient)
 }).post("/testSlashCommand", async (ctx) => {
-    await handleInteraction(ctx, testBotVerifier)
+    await handleInteraction(ctx, testClient)
 })
 
 app.use(bodyParser({ enableTypes: ["json"], encoding: "utf-8" }))
