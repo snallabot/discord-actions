@@ -10,7 +10,7 @@ export default {
         if (!command.data.options) {
             throw new Error("logger command not defined properly")
         }
-        const options = command.data.options || []
+        const options = command.data.options
         const loggerConfigureCommand = options[0] as APIApplicationCommandInteractionDataSubcommandOption
         const subCommand = loggerConfigureCommand.name
         if (subCommand !== "configure") {
