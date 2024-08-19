@@ -1,33 +1,14 @@
 import Koa, { ParameterizedContext } from "koa"
 import Router from "@koa/router"
 import bodyParser from "@koa/bodyparser"
-import { initializeApp, cert } from "firebase-admin/app"
-import { getFirestore } from "firebase-admin/firestore"
 import { CommandMode, DiscordClient, createClient } from "./discord_utils"
 import { APIInteraction, InteractionType, InteractionResponseType, APIChatInputApplicationCommandGuildInteraction } from "discord-api-types/payloads"
+import { setupFirebase } from "./settings_db"
 import { handleCommand, commandsInstaller } from "./commands_handler"
 
 const app = new Koa()
 const router = new Router()
 
-function setupFirebase() {
-    // production, use firebase with SA credentials passed from environment
-    if (process.env.SERVICE_ACCOUNT) {
-        const serviceAccount = JSON.parse(process.env.SERVICE_ACCOUNT)
-        initializeApp({
-            credential: cert(serviceAccount)
-        })
-
-    }
-    // dev, use firebase emulator
-    else {
-        if (!process.env.FIRESTORE_EMULATOR_HOST) {
-            throw new Error("Firestore emulator is not running!")
-        }
-        initializeApp({ projectId: "dev" })
-    }
-    return getFirestore()
-}
 
 const db = setupFirebase()
 
