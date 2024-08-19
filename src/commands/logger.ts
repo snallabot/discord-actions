@@ -22,7 +22,7 @@ export default {
             throw new Error("missing logger configure options!")
         }
         const channel = (subCommandOptions[0] as APIApplicationCommandInteractionDataChannelOption).value
-        const on = (subCommandOptions?.[1] as APIApplicationCommandInteractionDataBooleanOption)?.value || true
+        const on = subCommandOptions[1] ? (subCommandOptions[1] as APIApplicationCommandInteractionDataBooleanOption).value : true
         if (on) {
             const loggerConfig: LoggerConfiguration = {
                 channel: {
