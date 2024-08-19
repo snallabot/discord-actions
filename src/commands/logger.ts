@@ -36,9 +36,9 @@ export default {
                 }
             }, { merge: true })
         } else {
-            await db.collection("league_settings").doc(guild_id).set({
+            await db.collection("league_settings").doc(guild_id).update({
                 ["commands.logger"]: FieldValue.delete()
-            }, { merge: true })
+            })
         }
         respond(ctx, createMessageResponse(`logger is ${on ? "on" : "off"}`))
     },
