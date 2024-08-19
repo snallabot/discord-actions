@@ -1,9 +1,11 @@
 import { ParameterizedContext } from "koa"
 import { APIChatInputApplicationCommandInteractionData, APIInteractionGuildMember } from "discord-api-types/payloads"
 import { RESTPostAPIApplicationCommandsJSONBody } from "discord-api-types/v10"
-import leagueExportHandler from "./commands/league_export"
 import { createMessageResponse, respond, DiscordClient, CommandMode } from "./discord_utils"
 import { Firestore } from "firebase-admin/firestore"
+import leagueExportHandler from "./commands/league_export"
+import testHandler from "./commands/test"
+import dashboardHandler from "./commands/dashboard"
 
 export type Command = { command_name: string, token: string, guild_id: string, data: APIChatInputApplicationCommandInteractionData, member: APIInteractionGuildMember }
 
@@ -16,7 +18,7 @@ export type CommandsHandler = { [key: string]: CommandHandler | undefined }
 
 const SlashCommands = {
     "league_export": leagueExportHandler,
-    "dashboard": undefined,
+    "dashboard": dashboardHandler,
     "game_channels": undefined,
     "teams": undefined,
     "streams": undefined,
@@ -24,7 +26,7 @@ const SlashCommands = {
     "schedule": undefined,
     "logger": undefined,
     "export": undefined,
-    "test": undefined
+    "test": testHandler
 } as CommandsHandler
 
 export async function handleCommand(command: Command, ctx: ParameterizedContext, discordClient: DiscordClient, db: Firestore) {
