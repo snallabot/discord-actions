@@ -19,7 +19,7 @@ export function setupFirebase() {
     }
     return getFirestore()
 }
-enum DiscordIdType {
+export enum DiscordIdType {
     ROLE = "ROLE",
     CHANNEL = "CHANNEL",
     CATEGORY = "CATEGORY",
@@ -33,13 +33,13 @@ type RoleId = { id: string, id_type: DiscordIdType.ROLE }
 type CategoryId = { id: string, id_type: DiscordIdType.CATEGORY }
 type MessageId = { id: string, id_type: DiscordIdType.MESSAGE }
 type UserId = { id: string, id_type: DiscordIdType.USER }
-type LoggerConfiguration = { channel: ChannelId }
-type GameChannelConfiguration = { adminRole: RoleId, category: CategoryId, fwChannel: ChannelId, waitPing: number }
-type StreamCountConfiguration = { channel: ChannelId, messageId: MessageId }
-type BroadcastConfiguration = { role: RoleId, channel: ChannelId, title_keyword: string }
-type TeamConfiguration = { channel: ChannelId, messageId: MessageId, autoUpdate: boolean }
-type WaitlistConfiguration = { current_waitlist: UserId[] }
-type MaddenLeagueConfiguration = { league_id: string }
+export type LoggerConfiguration = { channel: ChannelId }
+export type GameChannelConfiguration = { adminRole: RoleId, category: CategoryId, fwChannel: ChannelId, waitPing: number }
+export type StreamCountConfiguration = { channel: ChannelId, messageId: MessageId }
+export type BroadcastConfiguration = { role: RoleId, channel: ChannelId, title_keyword: string }
+export type TeamConfiguration = { channel: ChannelId, messageId: MessageId, autoUpdate: boolean }
+export type WaitlistConfiguration = { current_waitlist: UserId[] }
+export type MaddenLeagueConfiguration = { league_id: string }
 
 export type LeagueSettings = {
     commands: {

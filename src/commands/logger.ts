@@ -1,8 +1,9 @@
 import { ParameterizedContext } from "koa"
 import { CommandHandler, Command } from "../commands_handler"
 import { respond, createMessageResponse, DiscordClient } from "../discord_utils"
-import { APIApplicationCommandInteractionDataBooleanOption, APIApplicationCommandInteractionDataChannelOption, APIApplicationCommandInteractionDataSubcommandOption, APIApplicationCommandSubcommandOption, ApplicationCommandOptionType, ApplicationCommandType, ChannelType, RESTPostAPIApplicationCommandsJSONBody } from "discord-api-types/v10"
-import { Firestore } from "firebase-admin/firestore"
+import { APIApplicationCommandInteractionDataBooleanOption, APIApplicationCommandInteractionDataChannelOption, APIApplicationCommandInteractionDataSubcommandOption, ApplicationCommandOptionType, ApplicationCommandType, ChannelType, RESTPostAPIApplicationCommandsJSONBody } from "discord-api-types/v10"
+import { FieldValue, Firestore } from "firebase-admin/firestore"
+import { DiscordIdType, LoggerConfiguration } from "../settings_db"
 
 export default {
     async handleCommand(command: Command, client: DiscordClient, db: Firestore, ctx: ParameterizedContext) {
@@ -22,14 +23,23 @@ export default {
         }
         const channel = (subCommandOptions[0] as APIApplicationCommandInteractionDataChannelOption).value
         const on = (subCommandOptions?.[1] as APIApplicationCommandInteractionDataBooleanOption)?.value || true
-        await db.collection("league_settings").doc(guild_id).set({
-            commands: {
-                logger: {
-                    channel: channel,
-                    on: on
-                }
+        if (on) {
+            const loggerConfig: LoggerConfiguration = {
+                channel: {
+                    id: channel,
+                    id_type: DiscordIdType.CHANNEL
+                },
             }
-        })
+            await db.collection("league_settings").doc(guild_id).set({
+                commands: {
+                    logger: loggerConfig
+                }
+            })
+        } else {
+            await db.collection("league_settings").doc(guild_id).set({
+                ["commands.logger"]: FieldValue.delete()
+            })
+        }
         respond(ctx, createMessageResponse(`logger is ${on ? "on" : "off"}`))
     },
     commandDefinition(): RESTPostAPIApplicationCommandsJSONBody {
