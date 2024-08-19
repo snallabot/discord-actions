@@ -6,6 +6,7 @@ import { Firestore } from "firebase-admin/firestore"
 import leagueExportHandler from "./commands/league_export"
 import testHandler from "./commands/test"
 import dashboardHandler from "./commands/dashboard"
+import loggerHandler from "./commands/logger"
 
 export type Command = { command_name: string, token: string, guild_id: string, data: APIChatInputApplicationCommandInteractionData, member: APIInteractionGuildMember }
 
@@ -24,7 +25,7 @@ const SlashCommands = {
     "streams": undefined,
     "waitlist": undefined,
     "schedule": undefined,
-    "logger": undefined,
+    "logger": loggerHandler,
     "export": undefined,
     "test": testHandler
 } as CommandsHandler

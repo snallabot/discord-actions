@@ -52,7 +52,7 @@ export default {
                     {
                         type: ApplicationCommandOptionType.Boolean,
                         name: "on",
-                        description: "turn on or of the logger",
+                        description: "turn on or off the logger",
                         required: false
                     }]
                 }
