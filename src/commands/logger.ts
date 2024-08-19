@@ -34,7 +34,7 @@ export default {
                 commands: {
                     logger: loggerConfig
                 }
-            })
+            }, { merge: true })
         } else {
             await db.collection("league_settings").doc(guild_id).set({
                 ["commands.logger"]: FieldValue.delete()
