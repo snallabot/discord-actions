@@ -39,7 +39,7 @@ export default {
             }
             const user = (subCommand.options[0] as APIApplicationCommandInteractionDataUserOption).value
             const waitlist = leagueSettings.commands.waitlist?.current_waitlist ?? []
-            const position = ((subCommand.options?.[1] as APIApplicationCommandInteractionDataIntegerOption)?.value || 1) - 1
+            const position = ((subCommand.options?.[1] as APIApplicationCommandInteractionDataIntegerOption)?.value || waitlist.length) - 1
             if (position > waitlist.length) {
                 respond(ctx, createMessageResponse("invalid position, beyond waitlist length"))
             } else {
@@ -71,7 +71,7 @@ export default {
                     waitlist: conf
                 }
             }, { merge: true })
-            respondWithWaitlist(ctx, waitlist)
+            respondWithWaitlist(ctx, newWaitlist)
         } else if (subCommandName === "pop") {
             if (!subCommand.options) {
                 throw new Error("misconfigured waitlist pop")
@@ -88,7 +88,7 @@ export default {
                     waitlist: conf
                 }
             }, { merge: true })
-            respondWithWaitlist(ctx, waitlist)
+            respondWithWaitlist(ctx, newWaitlist)
         } else {
             respond(ctx, createMessageResponse(`waitlist ${subCommandName} not found`))
         }
