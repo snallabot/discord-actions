@@ -28,11 +28,11 @@ export enum DiscordIdType {
     MESSAGE = "MESSAGE"
 }
 type DiscordId = { id: string, id_type: DiscordIdType }
-type ChannelId = { id: string, id_type: DiscordIdType.CHANNEL }
-type RoleId = { id: string, id_type: DiscordIdType.ROLE }
-type CategoryId = { id: string, id_type: DiscordIdType.CATEGORY }
-type MessageId = { id: string, id_type: DiscordIdType.MESSAGE }
-type UserId = { id: string, id_type: DiscordIdType.USER }
+export type ChannelId = { id: string, id_type: DiscordIdType.CHANNEL }
+export type RoleId = { id: string, id_type: DiscordIdType.ROLE }
+export type CategoryId = { id: string, id_type: DiscordIdType.CATEGORY }
+export type MessageId = { id: string, id_type: DiscordIdType.MESSAGE }
+export type UserId = { id: string, id_type: DiscordIdType.USER }
 export type LoggerConfiguration = { channel: ChannelId }
 export type GameChannelConfiguration = { adminRole: RoleId, category: CategoryId, fwChannel: ChannelId, waitPing: number }
 export type StreamCountConfiguration = { channel: ChannelId, messageId: MessageId }
