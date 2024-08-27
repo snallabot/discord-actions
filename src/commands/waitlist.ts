@@ -39,7 +39,7 @@ export default {
             }
             const user = (subCommand.options[0] as APIApplicationCommandInteractionDataUserOption).value
             const waitlist = leagueSettings.commands.waitlist?.current_waitlist ?? []
-            const position = ((subCommand.options?.[1] as APIApplicationCommandInteractionDataIntegerOption)?.value || waitlist.length) - 1
+            const position = ((subCommand.options?.[1] as APIApplicationCommandInteractionDataIntegerOption)?.value || waitlist.length + 1) - 1
             if (position > waitlist.length) {
                 respond(ctx, createMessageResponse("invalid position, beyond waitlist length"))
             } else {
