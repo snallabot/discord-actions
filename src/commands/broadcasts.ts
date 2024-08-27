@@ -42,8 +42,99 @@ export default {
                 throw new Error("youtube command misconfigured")
             }
             const groupCommand = subCommandGroup.options[0] as APIApplicationCommandInteractionDataSubcommandOption
-            // if (groupCommand)	
+            const groupCommandName = groupCommand.name
+            if (groupCommandName === "list") {
+                const youtubeUrls = await fetch(
+                    "https://snallabot-yt-notifier-46962131d2d5.herokuapp.com/list",
+                    {
+                        method: "POST",
+                        body: JSON.stringify({
+                            discord_server: guild_id,
+                        }),
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                    }
+                ).then((res) => res.json())
+                respond(ctx, createMessageResponse(`Here are your currently configured youtube channels:\n\n${youtubeUrls.join("\n")}`))
+            } else if (groupCommandName === "add" || groupCommandName === "remove") {
+                const event_type = groupCommandName === "add" ? "ADD_CHANNEL" : "REMOVE_CHANNEL"
+                if (!groupCommand.options || !groupCommand.options[0]) {
+                    throw new Error(`broadcast youtube ${groupCommandName} misconfigured`)
+                }
+                const youtubeUrl = (groupCommand.options[0] as APIApplicationCommandInteractionDataStringOption).value
+                const res = await fetch(
+                    "https://snallabot-yt-notifier-46962131d2d5.herokuapp.com/configure",
+                    {
+                        method: "POST",
+                        body: JSON.stringify({
+                            youtube_url: youtubeUrl,
+                            discord_server: guild_id,
+                            event_type: event_type,
+                        }),
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                    }
+                )
+                if (!res.ok) {
+                    const t = await res.text()
+                    throw new Error("could not update youtube broadcast. Please make sure you input the whole youtube channel url. error: " + t)
+                } else {
+                    respond(ctx, createMessageResponse("Channel updated successfully"))
+                }
+            } else {
+                throw new Error(`broadcast youtube ${groupCommandName}`)
+            }
         } else if (subCommandName === "twitch") {
+            const subCommandGroup = subCommand as APIApplicationCommandInteractionDataSubcommandGroupOption
+            if (!subCommandGroup || !subCommandGroup.options) {
+                throw new Error("twitch command misconfigured")
+            }
+            const groupCommand = subCommandGroup.options[0] as APIApplicationCommandInteractionDataSubcommandOption
+            const groupCommandName = groupCommand.name
+            if (groupCommandName === "list") {
+                const twitchUrls = await fetch(
+                    "https://snallabot-twitch-notifier-38043494ff8d.herokuapp.com/listTwitchNotifiers",
+                    {
+                        method: "POST",
+                        body: JSON.stringify({
+                            discord_server: guild_id,
+                        }),
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                    }
+                ).then((res) => res.json())
+                respond(ctx, createMessageResponse(`Here are your currently configured twitch channels:\n\n${twitchUrls.join("\n")}`))
+            } else if (groupCommandName === "add" || groupCommandName === "remove") {
+                const endpoint = groupCommandName === "add" ? "addTwitchNotifier" : "removeTwitchNotifier"
+                if (!groupCommand.options || !groupCommand.options[0]) {
+                    throw new Error(`broadcast twitch ${groupCommandName} misconfigured`)
+                }
+                const twitchUrl = (groupCommand.options[0] as APIApplicationCommandInteractionDataStringOption).value
+                const res = await fetch(
+                    `https://snallabot-twitch-notifier-38043494ff8d.herokuapp.com/${endpoint}`,
+                    {
+                        method: "POST",
+                        body: JSON.stringify({
+                            twitch_url: twitchUrl,
+                            discord_server: guild_id,
+                        }),
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                    }
+                )
+                if (!res.ok) {
+                    const t = await res.text()
+                    throw new Error("Could not update twitch broadcast. Please make sure you input the whole twitch channel url. error: " + t)
+                } else {
+                    respond(ctx, createMessageResponse("Channel updated successfully"))
+                }
+            } else {
+                throw new Error(`broadcast twitch ${groupCommandName} misconfigured`)
+            }
         } else {
             throw new Error(`Broadcast SubCommand ${subCommandName} misconfigured`)
         }
