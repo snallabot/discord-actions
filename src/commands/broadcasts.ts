@@ -9,7 +9,7 @@ export default {
     async handleCommand(command: Command, client: DiscordClient, db: Firestore, ctx: ParameterizedContext) {
         const { guild_id } = command
         if (!command.data.options) {
-            throw new Error("misconfigured waitlist")
+            throw new Error("misconfigured broadcast")
         }
         const subCommand = command.data.options[0] as APIApplicationCommandInteractionDataSubcommandOption | APIApplicationCommandInteractionDataSubcommandGroupOption
         const subCommandName = subCommand.name
