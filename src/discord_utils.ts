@@ -10,7 +10,8 @@ export enum CommandMode {
 export interface DiscordClient {
     requestDiscord(endpoint: string, options: { [key: string]: any }, maxTries?: number): Promise<Response>,
     interactionVerifier(ctx: ParameterizedContext): Promise<boolean>,
-    handleSlashCommand(mode: CommandMode, command: RESTPostAPIApplicationCommandsJSONBody, guild?: string): Promise<void>
+    handleSlashCommand(mode: CommandMode, command: RESTPostAPIApplicationCommandsJSONBody, guild?: string): Promise<void>,
+    editOriginalInteraction(token: string, body: { [key: string]: any }): Promise<void>
 }
 
 type DiscordSettings = { publicKey: string, botToken: string, appId: string }
@@ -82,6 +83,9 @@ export function createClient(settings: DiscordSettings): DiscordClient {
             } else {
                 throw new Error("invalid mode " + mode)
             }
+        },
+        editOriginalInteraction: async (token: string, body: { [key: string]: any }) => {
+            await sendDiscordRequest(`webhooks/${settings.appId}/${token}/messages/@original`, { method: "PATCH", body })
         }
     }
 }
@@ -98,5 +102,11 @@ export function createMessageResponse(content: string) {
         data: {
             content: content
         }
+    }
+}
+
+export function deferMessage() {
+    return {
+        type: InteractionResponseType.DeferredChannelMessageWithSource,
     }
 }
