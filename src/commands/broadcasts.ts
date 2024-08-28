@@ -1,15 +1,13 @@
 import { ParameterizedContext } from "koa"
 import { CommandHandler, Command } from "../commands_handler"
 import { respond, createMessageResponse, DiscordClient } from "../discord_utils"
-import { APIApplicationCommandInteractionDataChannelOption, APIApplicationCommandInteractionDataRoleOption, APIApplicationCommandInteractionDataStringOption, APIApplicationCommandInteractionDataSubcommandGroupOption, APIApplicationCommandInteractionDataSubcommandOption, APIApplicationCommandStringOption, APIApplicationCommandSubcommandGroupOption, APIApplicationCommandSubcommandOption, ApplicationCommandOptionType, ApplicationCommandType, ChannelType, RESTPostAPIApplicationCommandsJSONBody } from "discord-api-types/v10"
+import { APIApplicationCommandInteractionDataChannelOption, APIApplicationCommandInteractionDataRoleOption, APIApplicationCommandInteractionDataStringOption, APIApplicationCommandInteractionDataSubcommandGroupOption, APIApplicationCommandInteractionDataSubcommandOption, ApplicationCommandOptionType, ApplicationCommandType, ChannelType, RESTPostAPIApplicationCommandsJSONBody } from "discord-api-types/v10"
 import { Firestore } from "firebase-admin/firestore"
 import { LeagueSettings, BroadcastConfiguration, DiscordIdType } from "../settings_db"
 
 export default {
     async handleCommand(command: Command, client: DiscordClient, db: Firestore, ctx: ParameterizedContext) {
         const { guild_id } = command
-        const doc = await db.collection("league_settings").doc(guild_id).get()
-        const leagueSettings = doc.exists ? doc.data() as LeagueSettings : {} as LeagueSettings
         if (!command.data.options) {
             throw new Error("misconfigured waitlist")
         }
