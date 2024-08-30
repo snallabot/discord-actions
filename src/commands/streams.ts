@@ -6,9 +6,12 @@ import { Firestore } from "firebase-admin/firestore"
 import { DiscordIdType, LeagueSettings, StreamCountConfiguration, UserStreamCount } from "../settings_db"
 
 async function moveStreamCountMessage(client: DiscordClient, oldChannelId: string, oldMessageId: string, newChannelId: string, counts: Array<UserStreamCount>): Promise<string> {
-    await client.requestDiscord(`channels/${oldChannelId}/messages/${oldMessageId}`, {
-        method: "DELETE"
-    })
+    try {
+
+        await client.requestDiscord(`channels/${oldChannelId}/messages/${oldMessageId}`, {
+            method: "DELETE"
+        })
+    } catch (e) { }
     const res = await client.requestDiscord(`channels/${newChannelId}/messages`, {
         method: "POST",
         body: {
