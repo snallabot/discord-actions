@@ -40,11 +40,23 @@ async function updateStreamMessage(ctx: ParameterizedContext, streamConfiguratio
     const channel = streamConfiguration.channel.id
     const currentMessage = streamConfiguration.message.id
     try {
-        await client.requestDiscord(`channels/${channel}/messages/${currentMessage}`, { method: "PATCH", body: { content: newStreamMessage } })
+        await client.requestDiscord(`channels/${channel}/messages/${currentMessage}`, {
+            method: "PATCH", body: {
+                content: newStreamMessage, allowed_mentions: {
+                    parse: [],
+                }
+            }
+        })
         respond(ctx, createMessageResponse("count updated!", { flags: 64 }))
     } catch (e) {
         try {
-            await client.requestDiscord(`channels/${channel}/messages`, { method: "POST", body: { content: newStreamMessage } })
+            await client.requestDiscord(`channels/${channel}/messages`, {
+                method: "POST", body: {
+                    content: newStreamMessage, allowed_mentions: {
+                        parse: [],
+                    }
+                }
+            })
             respond(ctx, createMessageResponse("count updated!", { flags: 64 }))
         } catch (e) {
             respond(ctx, createMessageResponse("count was recorded, but I could not update the discord message error: " + e))
