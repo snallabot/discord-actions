@@ -9,7 +9,7 @@ async function moveStreamCountMessage(client: DiscordClient, oldChannelId: strin
     await client.requestDiscord(`channels/${oldChannelId}/messages/${oldMessageId}`, {
         method: "DELETE"
     })
-    const res = await client.requestDiscord(`channels/${newChannelId}/messages/`, {
+    const res = await client.requestDiscord(`channels/${newChannelId}/messages`, {
         method: "POST",
         body: {
             content: createStreamCountMessage(counts),
@@ -106,7 +106,7 @@ export default {
                             stream_count: streamConfiguration
                         }
                     }, { merge: true })
-                    client.editOriginalInteraction(token, {
+                    await client.editOriginalInteraction(token, {
                         content: "Stream count re configured and moved"
                     })
                 }
