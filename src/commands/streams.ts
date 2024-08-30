@@ -112,7 +112,17 @@ export default {
                 }
                 moveStreamCountMessage(client, oldChannelId, oldMessage, channel, counts).then(update).catch(e => client.editOriginalInteraction(token, { content: `could not update stream configuration ${e}` }))
             } else {
-                const res = await client.requestDiscord(`/channels/${channel}/messages`, {
+                const oldMessage = leagueSettings?.commands?.stream_count?.message?.id
+                if (oldMessage) {
+                    try {
+                        await client.requestDiscord(`channels/${channel}/messages/${oldMessage}`, { method: "GET" })
+                        respond(ctx, createMessageResponse("Stream already configured"))
+                        return
+                    } catch (e) {
+                        console.log(e)
+                    }
+                }
+                const res = await client.requestDiscord(`channels/${channel}/messages`, {
                     method: "POST",
                     body: {
                         content: createStreamCountMessage(counts),
@@ -138,7 +148,6 @@ export default {
                         stream_count: streamConfiguration
                     }
                 }, { merge: true })
-
                 respond(ctx, createMessageResponse("Stream Count configured"))
             }
         } else if (subCommand === "count") {
