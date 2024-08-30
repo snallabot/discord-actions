@@ -162,7 +162,7 @@ export default {
                 const currentCounts = leagueSettings?.commands?.stream_count?.counts ?? []
                 const step = (streamsCommand.options[0] as APIApplicationCommandInteractionDataIntegerOption).value || 1
                 const idx = currentCounts.findIndex(u => u.user.id === user)
-                const newCounts = idx > 1 ? currentCounts.map(u => u.user.id === user ? { user: u.user, count: u.count + step } : u) : currentCounts.concat([{ user: { id: user, id_type: DiscordIdType.USER }, count: 1 }])
+                const newCounts = idx !== -1 ? currentCounts.map(u => u.user.id === user ? { user: u.user, count: u.count + step } : u) : currentCounts.concat([{ user: { id: user, id_type: DiscordIdType.USER }, count: 1 }])
                 const newStreamMessage = createStreamCountMessage(newCounts)
                 const newMessage = await updateStreamMessage(ctx, leagueSettings.commands.stream_count, client, newStreamMessage)
                 await db.collection("league_settings").doc(guild_id).set({
