@@ -30,7 +30,7 @@ function createStreamCountMessage(counts: Array<UserStreamCount>) {
     return (
         "# Streams \n" +
         sortedCountsList
-            .map((userCount) => `<@${userCount.user.id}>: ${userCount.count}`)
+            .map((userCount) => `1. <@${userCount.user.id}>: ${userCount.count}`)
             .join("\n")
             .trim()
     )
