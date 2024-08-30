@@ -96,11 +96,12 @@ export function respond(ctx: ParameterizedContext, body: any) {
     ctx.body = body
 }
 
-export function createMessageResponse(content: string) {
+export function createMessageResponse(content: string, options = {}) {
     return {
         type: InteractionResponseType.ChannelMessageWithSource,
         data: {
-            content: content
+            content: content,
+            ...options
         }
     }
 }

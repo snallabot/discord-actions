@@ -9,6 +9,7 @@ import dashboardHandler from "./commands/dashboard"
 import loggerHandler from "./commands/logger"
 import waitlistHandler from "./commands/waitlist"
 import broadcastsHandler from "./commands/broadcasts"
+import streamsHandler from "./commands/streams"
 
 export type Command = { command_name: string, token: string, guild_id: string, data: APIChatInputApplicationCommandInteractionData, member: APIInteractionGuildMember }
 
@@ -24,7 +25,7 @@ const SlashCommands = {
     "dashboard": dashboardHandler,
     "game_channels": undefined,
     "teams": undefined,
-    "streams": undefined,
+    "streams": streamsHandler,
     "broadcasts": broadcastsHandler,
     "waitlist": waitlistHandler,
     "schedule": undefined,
