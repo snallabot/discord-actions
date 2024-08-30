@@ -36,7 +36,7 @@ function createStreamCountMessage(counts: Array<UserStreamCount>) {
     )
 }
 
-async function updateStreamMessage(ctx: ParameterizedContext, streamConfiguration: Required<StreamCountConfiguration>, client: DiscordClient, newStreamMessage: string): Promise<void> {
+async function updateStreamMessage(ctx: ParameterizedContext, streamConfiguration: Required<StreamCountConfiguration>, client: DiscordClient, newStreamMessage: string): Promise<string> {
     const channel = streamConfiguration.channel.id
     const currentMessage = streamConfiguration.message.id
     try {
@@ -48,9 +48,10 @@ async function updateStreamMessage(ctx: ParameterizedContext, streamConfiguratio
             }
         })
         respond(ctx, createMessageResponse("count updated!", { flags: 64 }))
+        return currentMessage
     } catch (e) {
         try {
-            await client.requestDiscord(`channels/${channel}/messages`, {
+            const res = await client.requestDiscord(`channels/${channel}/messages`, {
                 method: "POST", body: {
                     content: newStreamMessage, allowed_mentions: {
                         parse: [],
@@ -58,8 +59,10 @@ async function updateStreamMessage(ctx: ParameterizedContext, streamConfiguratio
                 }
             })
             respond(ctx, createMessageResponse("count updated!", { flags: 64 }))
+            return (await res.json() as APIMessage).id
         } catch (e) {
             respond(ctx, createMessageResponse("count was recorded, but I could not update the discord message error: " + e))
+            return currentMessage
         }
     }
 }
@@ -148,14 +151,18 @@ export default {
                 const step = (streamsCommand.options[0] as APIApplicationCommandInteractionDataIntegerOption).value || 1
                 const newCounts = currentCounts.map(u => u.user.id === user ? { user: u.user, count: u.count + step } : u)
                 const newStreamMessage = createStreamCountMessage(newCounts)
+                const newMessage = await updateStreamMessage(ctx, leagueSettings.commands.stream_count, client, newStreamMessage)
                 await db.collection("league_settings").doc(guild_id).set({
                     commands: {
                         stream_count: {
-                            counts: newCounts
+                            counts: newCounts,
+                            message: {
+                                id: newMessage,
+                                id_type: DiscordIdType.MESSAGE
+                            }
                         }
                     }
                 }, { merge: true })
-                await updateStreamMessage(ctx, leagueSettings.commands.stream_count, client, newStreamMessage)
             } else {
                 respond(ctx, createMessageResponse("Streams is not configured. run /streams configure"))
             }
@@ -168,14 +175,18 @@ export default {
                 const currentCounts = leagueSettings?.commands?.stream_count?.counts ?? []
                 const newCounts = currentCounts.filter(u => u.user.id !== user)
                 const newStreamMessage = createStreamCountMessage(newCounts)
+                const newMessage = await updateStreamMessage(ctx, leagueSettings.commands.stream_count, client, newStreamMessage)
                 await db.collection("league_settings").doc(guild_id).set({
                     commands: {
                         stream_count: {
-                            counts: newCounts
+                            counts: newCounts,
+                            message: {
+                                id: newMessage,
+                                id_type: DiscordIdType.MESSAGE
+                            }
                         }
                     }
                 }, { merge: true })
-                await updateStreamMessage(ctx, leagueSettings.commands.stream_count, client, newStreamMessage)
             } else {
                 respond(ctx, createMessageResponse("Streams is not configured. run /streams configure"))
             }
@@ -183,14 +194,18 @@ export default {
             if (leagueSettings?.commands?.stream_count?.channel?.id) {
                 const newCounts = [] as Array<UserStreamCount>
                 const newStreamMessage = createStreamCountMessage(newCounts)
+                const newMessage = await updateStreamMessage(ctx, leagueSettings.commands.stream_count, client, newStreamMessage)
                 await db.collection("league_settings").doc(guild_id).set({
                     commands: {
                         stream_count: {
-                            counts: newCounts
+                            counts: newCounts,
+                            message: {
+                                id: newMessage,
+                                id_type: DiscordIdType.MESSAGE
+                            }
                         }
                     }
                 }, { merge: true })
-                await updateStreamMessage(ctx, leagueSettings.commands.stream_count, client, newStreamMessage)
             } else {
                 respond(ctx, createMessageResponse("Streams is not configured. run /streams configure"))
             }
