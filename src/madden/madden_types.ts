@@ -1,0 +1,20 @@
+export type Team = {
+    ovrRating: number,
+    injuryCount: number,
+    divName: string,
+    cityName: string,
+    teamId: number,
+    logoId: number,
+    abbrName: string,
+    userName: string,
+    nickName: string,
+    offScheme: number,
+    secondaryColor: number,
+    primaryColor: number,
+    defScheme: number,
+    displayName: string,
+    platform: string,
+    key: string,
+    id: string,
+    timestamp: string
+}
