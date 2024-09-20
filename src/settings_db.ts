@@ -38,7 +38,9 @@ export type GameChannelConfiguration = { adminRole: RoleId, category: CategoryId
 export type UserStreamCount = { user: UserId, count: number }
 export type StreamCountConfiguration = { channel: ChannelId, message: MessageId, counts: Array<UserStreamCount> }
 export type BroadcastConfiguration = { role?: RoleId, channel: ChannelId, title_keyword: string }
-export type TeamConfiguration = { channel: ChannelId, messageId: MessageId, autoUpdate: boolean }
+export type TeamAssignment = { discord_user?: UserId, discord_role?: RoleId }
+export type TeamAssignments = { [key: string]: TeamAssignment }
+export type TeamConfiguration = { channel: ChannelId, messageId: MessageId, useRoleUpdates: boolean, assignments: TeamAssignments }
 export type WaitlistConfiguration = { current_waitlist: UserId[] }
 export type MaddenLeagueConfiguration = { league_id: string }
 
