@@ -204,14 +204,14 @@ export default {
             const currentAssignments = { ...leagueSettings.commands.teams.assignments }
             delete currentAssignments[`${assignedTeam.teamId}`]
             leagueSettings.commands.teams.assignments = currentAssignments
-            await db.collection("league_settings").doc(guild_id).set({
+            await db.collection("league_settings").doc(guild_id).update({
                 [`commands.teams.assignments.${assignedTeam.teamId}`]: FieldValue.delete()
-            }, { merge: true })
+            })
             const message = createTeamsMessage(leagueSettings, teams)
             try {
                 await client.requestDiscord(`channels/${leagueSettings.commands.teams.channel.id}/messages/${leagueSettings.commands.teams.messageId.id}`,
                     { method: "PATCH", body: { content: message, allowed_mentions: { parse: [] } } })
-                respond(ctx, createMessageResponse("Team Free"))
+                respond(ctx, createMessageResponse("Team Freed"))
             } catch (e) {
                 respond(ctx, createMessageResponse("Could not update teams message, this could be a permission issue. The assignment was freed1, Error: " + e))
             }
@@ -219,9 +219,9 @@ export default {
             if (!leagueSettings.commands.teams?.channel.id) {
                 throw new Error("Teams not configured, run /teams configure first")
             }
-            await db.collection("league_settings").doc(guild_id).set({
+            await db.collection("league_settings").doc(guild_id).update({
                 [`commands.teams.assignments`]: FieldValue.delete()
-            }, { merge: true })
+            })
             if (leagueSettings.commands.teams?.assignments) {
                 leagueSettings.commands.teams.assignments = {}
             }
