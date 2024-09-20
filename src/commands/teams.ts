@@ -257,8 +257,14 @@ export default {
                         {
                             type: ApplicationCommandOptionType.User,
                             name: "user",
-                            description: "user",
+                            description: "the discord member you want to assign to this team",
                             required: true,
+                        },
+                        {
+                            type: ApplicationCommandOptionType.User,
+                            name: "role",
+                            description: "the role that will be tracked with this team",
+                            required: false,
                         },
                     ],
                 },
