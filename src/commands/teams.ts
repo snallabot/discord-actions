@@ -106,7 +106,7 @@ export default {
                 const oldMessageId = leagueSettings.commands.teams?.messageId.id
                 if (oldMessageId) {
                     try {
-                        await client.requestDiscord(`channels/${channel}/messages/${oldMessageId}}`, { method: "GET" })
+                        await client.requestDiscord(`channels/${channel}/messages/${oldMessageId}`, { method: "GET" })
                         await db.collection("league_settings").doc(guild_id).set({
                             commands: {
                                 teams: {
