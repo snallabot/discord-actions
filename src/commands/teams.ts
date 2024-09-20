@@ -35,8 +35,8 @@ function formatTeamMessage(teams: Team[], teamAssignments: TeamAssignments): str
             const divisionName = entry[0]
             const divisionMessage = divisionalTeams.sort((t1, t2) => t1.displayName.localeCompare(t2.displayName))
                 .map(team => {
-                    const user = teamAssignments?.[`${team.teamId}`].discord_user?.id
-                    const role = teamAssignments?.[`${team.teamId}`].discord_role?.id
+                    const user = teamAssignments?.[`${team.teamId}`]?.discord_user?.id
+                    const role = teamAssignments?.[`${team.teamId}`]?.discord_role?.id
                     const consoleUser = team.userName
                     const assignment = [user ? [`<@${user}>`] : [], role ? [`<&${role}>`] : [], [consoleUser ? `${consoleUser}` : "CPU"]].flat().join(", ")
                     return `${team.displayName}: ${assignment}`
