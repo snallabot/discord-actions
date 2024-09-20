@@ -164,8 +164,8 @@ export default {
             }
             const assignedTeam = foundTeam[0]
             const role = (teamsCommand?.options?.[2] as APIApplicationCommandInteractionDataRoleOption)?.value
-            const roleAssignment = role ? { role: { id: role, id_type: DiscordIdType.ROLE } } : {}
-            const assignments = { ...leagueSettings.commands.teams?.assignments, [assignedTeam.teamId]: { user: { id: user, id_type: DiscordIdType.USER }, ...roleAssignment } }
+            const roleAssignment = role ? { discord_role: { id: role, id_type: DiscordIdType.ROLE } } : {}
+            const assignments = { ...leagueSettings.commands.teams?.assignments, [assignedTeam.teamId]: { discord_user: { id: user, id_type: DiscordIdType.USER }, ...roleAssignment } }
             leagueSettings.commands.teams.assignments = assignments
             await db.collection("league_settings").doc(guild_id).set({
                 commands: {
