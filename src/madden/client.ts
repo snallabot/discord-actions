@@ -18,7 +18,6 @@ export default {
             }
         })
         const teamsData = await res.json() as { "MADDEN_TEAM": Array<Team> }
-        console.log(teamsData.MADDEN_TEAM.length)
         return Object.values(Object.groupBy(teamsData.MADDEN_TEAM, team => team.teamId)).flatMap(teamDocs => teamDocs ? [teamDocs.sort(eventSorter)[0]] : [])
 
     }
