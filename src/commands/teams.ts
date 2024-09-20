@@ -261,7 +261,7 @@ export default {
                             required: true,
                         },
                         {
-                            type: ApplicationCommandOptionType.User,
+                            type: ApplicationCommandOptionType.Role,
                             name: "role",
                             description: "the role that will be tracked with this team",
                             required: false,
