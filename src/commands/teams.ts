@@ -115,6 +115,8 @@ export default {
                                 }
                             }
                         }, { merge: true })
+                        const message = await fetchTeamsMessage(leagueSettings)
+                        await client.requestDiscord(`channels/${channel}/messages/${oldMessageId}`, { method: "PATCH", body: { content: message, allowed_mentions: { parse: [] } } })
                         respond(ctx, createMessageResponse("Teams Configured"))
                         return
                     } catch (e) {
