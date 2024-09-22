@@ -12,7 +12,7 @@ function getMessageForWeek(week: number) {
         throw new Error("Invalid week number. Valid weeks are week 1-18 and for playoffs: Wildcard = 19, Divisional = 20, Conference Championship = 21, Super Bowl = 23")
     }
     if (week <= 18) {
-        return `${week}`
+        return `Week ${week}`
     } else if (week === 19) {
         return "Wildcard Round"
     } else if (week === 20) {
