@@ -35,7 +35,10 @@ export default {
                 "Content-Type": "application/json"
             }
         })
-        const schedulesData = await res.json() as { "MADDEN_SCHEDULE": Array<MaddenGame> }
+        const schedulesData = await res.json() as { "MADDEN_SCHEDULE": Array<MaddenGame> | undefined }
+        if (!schedulesData.MADDEN_SCHEDULE) {
+            throw new Error("Missing schedule for week " + week)
+        }
         const bySeason = Object.groupBy(schedulesData.MADDEN_SCHEDULE, s => s.seasonIndex)
         const latestSeason = Math.max(...(Object.keys(bySeason).map(i => Number(i))))
         const latestSeasonSchedule = bySeason[latestSeason]
@@ -52,7 +55,10 @@ export default {
                 "Content-Type": "application/json"
             }
         })
-        const schedulesData = await res.json() as { "MADDEN_SCHEDULE": Array<MaddenGame> }
+        const schedulesData = await res.json() as { "MADDEN_SCHEDULE": Array<MaddenGame> | undefined }
+        if (!schedulesData.MADDEN_SCHEDULE) {
+            throw new Error("Missing schedule for week " + week)
+        }
         return getLatestEvents(Object.values(Object.groupBy(schedulesData.MADDEN_SCHEDULE, w => w.scheduleId)))
     }
 } as MaddenClient
