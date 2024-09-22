@@ -23,6 +23,10 @@ export default {
                 "Content-Type": "application/json"
             }
         })
+        if (!res.ok) {
+            const t = await res.text()
+            throw new Error("Could not retrieve events " + t)
+        }
         const teamsData = await res.json() as { "MADDEN_TEAM": Array<Team> }
         return getLatestEvents(Object.values(Object.groupBy(teamsData.MADDEN_TEAM, team => team.teamId)))
 
@@ -35,6 +39,10 @@ export default {
                 "Content-Type": "application/json"
             }
         })
+        if (!res.ok) {
+            const t = await res.text()
+            throw new Error("Could not retrieve events " + t)
+        }
         const schedulesData = await res.json() as { "MADDEN_SCHEDULE": Array<MaddenGame> | undefined }
         if (!schedulesData.MADDEN_SCHEDULE) {
             throw new Error("Missing schedule for week " + week)
@@ -55,6 +63,10 @@ export default {
                 "Content-Type": "application/json"
             }
         })
+        if (!res.ok) {
+            const t = await res.text()
+            throw new Error("Could not retrieve events " + t)
+        }
         const schedulesData = await res.json() as { "MADDEN_SCHEDULE": Array<MaddenGame> | undefined }
         if (!schedulesData.MADDEN_SCHEDULE) {
             throw new Error("Missing schedule for week " + week)
