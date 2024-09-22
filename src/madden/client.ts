@@ -53,7 +53,7 @@ export default {
         if (latestSeasonSchedule) {
             return getLatestEvents(Object.values(Object.groupBy(latestSeasonSchedule, w => w.scheduleId)))
         }
-        throw new Error("Unexpected error with season schedule " + bySeason)
+        throw new Error("Missing schedule for week " + week)
     },
     getWeekScheduleForSeason: async function(leagueId: string, week: number, season: number) {
         const res = await fetch("https://snallabot-event-sender-b869b2ccfed0.herokuapp.com/query", {
