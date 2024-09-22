@@ -30,7 +30,6 @@ function format(schedule: MaddenGame[], teams: Team[], week: number) {
     teams.forEach(t => teamMap.set(t.teamId, t))
     const schedulesMessage = schedule.sort((a, b) => a.scheduleId - b.scheduleId).filter(w => w.awayTeamId !== 0 && w.homeTeamId !== 0).map(game => {
         if (game.awayScore == 0 && game.homeScore == 0) {
-            const c = teamMap.get(game.awayTeamId)
             return `${teamMap.get(game.awayTeamId)?.displayName} vs ${teamMap.get(game.homeTeamId)?.displayName}`
         } else {
             if (game.awayScore > game.homeScore) {
@@ -43,7 +42,7 @@ function format(schedule: MaddenGame[], teams: Team[], week: number) {
             return `${teamMap.get(game.awayTeamId)?.displayName} ${game.awayScore} vs ${game.homeScore
                 } ${teamMap.get(game.homeTeamId)?.displayName}`
         }
-    }).join("/n")
+    }).join("\n")
 
     return `# ${getMessageForWeek(week)} Schedule\n${schedulesMessage}`
 }
