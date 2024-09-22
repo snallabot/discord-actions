@@ -34,7 +34,7 @@ export default {
     getLatestWeekSchedule: async function(leagueId: string, week: number) {
         const res = await fetch("https://snallabot-event-sender-b869b2ccfed0.herokuapp.com/query", {
             method: "POST",
-            body: JSON.stringify({ event_types: ["MADDEN_SCHEDULE"], key: leagueId, after: 0, filter: { weekIndex: week - 1 }, limit: 10000 }),
+            body: JSON.stringify({ event_types: ["MADDEN_SCHEDULE"], key: leagueId, after: 0, filter: { weekIndex: week - 1, stageIndex: 1 }, limit: 10000 }),
             headers: {
                 "Content-Type": "application/json"
             }
@@ -58,7 +58,7 @@ export default {
     getWeekScheduleForSeason: async function(leagueId: string, week: number, season: number) {
         const res = await fetch("https://snallabot-event-sender-b869b2ccfed0.herokuapp.com/query", {
             method: "POST",
-            body: JSON.stringify({ event_types: ["MADDEN_SCHEDULE"], key: leagueId, after: 0, filter: { weekIndex: week - 1, seasonIndex: season }, limit: 10000 }),
+            body: JSON.stringify({ event_types: ["MADDEN_SCHEDULE"], key: leagueId, after: 0, filter: { weekIndex: week - 1, seasonIndex: season, stageIndex: 1 }, limit: 10000 }),
             headers: {
                 "Content-Type": "application/json"
             }
