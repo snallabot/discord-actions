@@ -34,15 +34,24 @@ export type CategoryId = { id: string, id_type: DiscordIdType.CATEGORY }
 export type MessageId = { id: string, id_type: DiscordIdType.MESSAGE }
 export type UserId = { id: string, id_type: DiscordIdType.USER }
 export type LoggerConfiguration = { channel: ChannelId }
-export type GameChannelConfiguration = { adminRole: RoleId, category: CategoryId, fwChannel: ChannelId, waitPing: number }
+export type WaitlistConfiguration = { current_waitlist: UserId[] }
+export type MaddenLeagueConfiguration = { league_id: string }
+export type BroadcastConfiguration = { role?: RoleId, channel: ChannelId, title_keyword: string }
+
+export type Created = "CREATED"
+export type ForceWinRequested = "FORCE_WIN_REQUESTED"
+export type GameChannelState = Created | ForceWinRequested
+export type GameChannel = { channel: ChannelId, message: MessageId, scheduleId: number, state: GameChannelState, notifiedTime: number }
+export type WeekState = { week: number, seasonIndex: number, scoreboard: MessageId, channel_states: { [key: string]: GameChannel } }
+export type GameChannelConfiguration = { admin: RoleId, default_category: CategoryId, scoreboard_channel: ChannelId, wait_ping: number, weekly_states: { [key: string]: WeekState } }
+
 export type UserStreamCount = { user: UserId, count: number }
 export type StreamCountConfiguration = { channel: ChannelId, message: MessageId, counts: Array<UserStreamCount> }
-export type BroadcastConfiguration = { role?: RoleId, channel: ChannelId, title_keyword: string }
+
 export type TeamAssignment = { discord_user?: UserId, discord_role?: RoleId }
 export type TeamAssignments = { [key: string]: TeamAssignment }
 export type TeamConfiguration = { channel: ChannelId, messageId: MessageId, useRoleUpdates: boolean, assignments: TeamAssignments }
-export type WaitlistConfiguration = { current_waitlist: UserId[] }
-export type MaddenLeagueConfiguration = { league_id: string }
+
 
 export type LeagueSettings = {
     commands: {

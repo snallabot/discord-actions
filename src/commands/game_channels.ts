@@ -1,0 +1,410 @@
+import { ParameterizedContext } from "koa"
+import { CommandHandler, Command } from "../commands_handler"
+import { respond, createMessageResponse, DiscordClient, deferMessage } from "../discord_utils"
+import { APIApplicationCommandInteractionDataChannelOption, APIApplicationCommandInteractionDataIntegerOption, APIApplicationCommandInteractionDataRoleOption, APIApplicationCommandInteractionDataSubcommandOption, APIChannel, APIMessage, ApplicationCommandOptionType, ApplicationCommandType, ChannelType, RESTPostAPIApplicationCommandsJSONBody } from "discord-api-types/v10"
+import { Firestore } from "firebase-admin/firestore"
+import { DiscordIdType, GameChannel, LeagueSettings, MaddenLeagueConfiguration, TeamAssignments, WeekState } from "../settings_db"
+import MaddenClient from "../madden/client"
+import { getMessageForWeek, MaddenGame, Team } from "../madden/madden_types"
+
+const SNALLABOT_USER = "970091866450198548"
+enum SnallabotReactions {
+    SCHEDULE = "SCHEDULE",
+    GAME_FINISHED = "GAME_FINISHED",
+    FW_HOME = "FORCE_WIN_HOME",
+    FW_AWAY = "FORCE_WIN_AWAY",
+    FORCE_WIN = "FORCE_WIN"
+}
+
+const reactions = {
+    [SnallabotReactions.SCHEDULE]: "%E2%8F%B0",
+    [SnallabotReactions.GAME_FINISHED]: "%F0%9F%8F%86",
+    [SnallabotReactions.FW_HOME]: "%F0%9F%8F%A0",
+    [SnallabotReactions.FW_AWAY]: "%F0%9F%9B%AB",
+    [SnallabotReactions.FORCE_WIN]: "%E2%8F%AD%EF%B8%8F",
+}
+async function react(client: DiscordClient, channel: string, message: string, reaction: SnallabotReactions) {
+    await client.requestDiscord(`channels/${channel}/messages/${message}/reactions/${reactions[reaction]}/@me`, { method: "PUT" })
+}
+
+function notifierMessage(users: string): string {
+    return `${users}\nTime to schedule your game! Once your game is scheduled, hit the ⏰. Otherwise, You will be notified again.\nWhen you're done playing, let me know with 🏆.\nNeed to sim this game? React with ⏭ AND the home/away to force win. Choose both home and away to fair sim!`
+}
+
+function formatScoreboard(week: number, seasonIndex: number, games: MaddenGame[], teamMap: Map<Number, Team>, assignments: TeamAssignments) {
+    const scoreboardGames = games.sort((g1, g2) => g1.scheduleId - g2.scheduleId).map(game => {
+        const awayTeamName = teamMap.get(game.awayTeamId)?.displayName
+        const homeTeamName = teamMap.get(game.homeTeamId)?.displayName
+        const awayDiscordUser = assignments[game.awayTeamId].discord_user?.id
+        const homeDiscordUser = assignments[game.homeTeamId].discord_user?.id
+        const awayUser = (awayDiscordUser ? `<@${awayDiscordUser}>` : "") || teamMap.get(game.awayTeamId)?.userName || "CPU"
+        const homeUser = (homeDiscordUser ? `<@${homeDiscordUser}>` : "") || teamMap.get(game.homeTeamId)?.userName || "CPU"
+        const awayTeam = `${awayTeamName} (${awayUser})`
+        const homeTeam = `${homeTeamName} (${homeUser})`
+        if (game.awayScore == 0 && game.homeScore == 0) {
+            return `${awayTeam} vs ${homeTeam}`
+        } else {
+            if (game.awayScore > game.homeScore) {
+                return `**__${awayTeam} ${game.awayScore
+                    }__** vs ${game.homeScore} ${homeTeam} FINAL`
+            } else if (game.homeScore > game.awayScore) {
+                return `${awayTeam} ${game.awayScore
+                    } vs **__${game.homeScore} ${homeTeam}__** FINAL`
+            }
+            return `${awayTeam} ${game.awayScore} vs ${game.homeScore
+                } ${homeTeam} FINAL`
+        }
+    }).join("\n")
+
+    return `# Year ${seasonIndex + 2024} ${getMessageForWeek(week)} Scoreboard\n${scoreboardGames}`
+}
+
+async function createGameChannels(client: DiscordClient, db: Firestore, token: string, guild_id: string, settings: LeagueSettings, week: number, category: string) {
+    const leagueId = (settings.commands.madden_league as Required<MaddenLeagueConfiguration>).league_id
+    client.editOriginalInteraction(token, {
+        content: `Creating Game Channels:
+- <a:snallabot_loading:1288662414191104111> Creating Channels
+- <a:snallabot_waiting:1288664321781399584> Creating Notification Messages
+- <a:snallabot_waiting:1288664321781399584> Setting up notifier
+- <a:snallabot_waiting:1288664321781399584> Creating Scoreboard
+- <a:snallabot_waiting:1288664321781399584> Exporting
+- <a:snallabot_waiting:1288664321781399584> Logging`})
+    let weekSchedule = (await MaddenClient.getLatestWeekSchedule(leagueId, week)).sort((g, g2) => g.scheduleId - g2.scheduleId)
+    if (weekSchedule.length === 0 || weekSchedule.every(g => g.awayTeamId === 0 && g.homeTeamId === 0)) {
+        client.editOriginalInteraction(token, {
+            content: `Creating Game Channels:
+- <a:snallabot_loading:1288662414191104111> Creating Channels, automatically retrieving the week for you! Please wait..
+- <a:snallabot_waiting:1288664321781399584> Creating Notification Messages
+- <a:snallabot_waiting:1288664321781399584> Setting up notifier
+- <a:snallabot_waiting:1288664321781399584> Creating Scoreboard
+- <a:snallabot_waiting:1288664321781399584> Exporting
+- <a:snallabot_waiting:1288664321781399584> Logging`})
+        await fetch(`https://snallabot.herokuapp.com/${guild_id}/export`, {
+            method: "POST",
+            body: JSON.stringify({
+                week: week,
+                stage: 1,
+            }),
+        })
+        weekSchedule = (await MaddenClient.getLatestWeekSchedule(leagueId, week)).sort((g, g2) => g.scheduleId - g2.scheduleId)
+    }
+    if (weekSchedule.length === 0) {
+        client.editOriginalInteraction(token, { content: "This week is not exported! Export it via dashboard or companion app" })
+        return
+    }
+    const teams = await MaddenClient.getLatestTeams(leagueId)
+    const teamMap = new Map<Number, Team>()
+    teams.forEach(t => teamMap.set(t.teamId, t))
+    const gameChannels = await Promise.all(weekSchedule.map(async game => {
+        const awayTeam = teamMap.get(game.awayTeamId)?.displayName
+        const homeTeam = teamMap.get(game.homeTeamId)?.displayName
+        const res = await client.requestDiscord(`guilds/${guild_id}/channels`, {
+            method: "POST",
+            body: {
+                type: 0,
+                name: `${awayTeam}-at-${homeTeam}`,
+                parent_id: category,
+            },
+        })
+        const channel = await res.json() as APIChannel
+        return { game: game, scheduleId: game.scheduleId, channel: { id: channel.id, id_type: DiscordIdType.CHANNEL } }
+    }))
+    client.editOriginalInteraction(token, {
+        content: `Creating Game Channels:
+- <a:snallabot_done:1288666730595618868> Creating Channels
+- <a:snallabot_waiting:1288664321781399584> Creating Notification Messages
+- <a:snallabot_waiting:1288664321781399584> Setting up notifier
+- <a:snallabot_waiting:1288664321781399584> Creating Scoreboard
+- <a:snallabot_waiting:1288664321781399584> Exporting
+- <a:snallabot_waiting:1288664321781399584> Logging`})
+    const assignments = settings.commands.teams?.assignments || {}
+    const gameChannelsWithMessage = await Promise.all(gameChannels.map(async gameChannel => {
+        const channel = gameChannel.channel.id
+        const game = gameChannel.game
+        const awayUser = assignments?.[game.awayTeamId]?.discord_user?.id || teamMap.get(game.awayTeamId)?.userName || "CPU"
+        const homeUser = assignments?.[game.homeTeamId]?.discord_user?.id || teamMap.get(game.homeTeamId)?.userName || "CPU"
+        const res = await client.requestDiscord(`channels/${channel}/messages`, { method: "POST", body: { content: notifierMessage(`${awayUser} at ${homeUser}`) } })
+        const message = await res.json() as APIMessage
+        return { message: { id: message.id, id_type: DiscordIdType.MESSAGE }, ...gameChannel }
+    }))
+    client.editOriginalInteraction(token, {
+        content: `Creating Game Channels:
+- <a:snallabot_done:1288666730595618868> Creating Channels
+- <a:snallabot_done:1288666730595618868> Creating Notification Messages
+- <a:snallabot_waiting:1288664321781399584> Setting up notifier
+- <a:snallabot_waiting:1288664321781399584> Creating Scoreboard
+- <a:snallabot_waiting:1288664321781399584> Exporting
+- <a:snallabot_waiting:1288664321781399584> Logging`})
+    const finalGameChannels: GameChannel[] = await Promise.all(gameChannelsWithMessage.map(async gameChannel => {
+        const { channel: { id: channelId }, message: { id: messageId } } = gameChannel
+        await react(client, channelId, messageId, SnallabotReactions.SCHEDULE)
+        await react(client, channelId, messageId, SnallabotReactions.GAME_FINISHED)
+        await react(client, channelId, messageId, SnallabotReactions.FW_HOME)
+        await react(client, channelId, messageId, SnallabotReactions.FW_AWAY)
+        await react(client, channelId, messageId, SnallabotReactions.FORCE_WIN)
+        const { game, ...rest } = gameChannel
+        const epochTime = new Date().getTime()
+        return { ...rest, state: "CREATED", notifiedTime: epochTime, channel: { id: channelId, id_type: DiscordIdType.CHANNEL }, message: { id: messageId, id_type: DiscordIdType.MESSAGE } }
+    }))
+    const channelsMap = {} as { [key: string]: GameChannel }
+    finalGameChannels.forEach(g => channelsMap[g.channel.id] = g)
+    client.editOriginalInteraction(token, {
+        content: `Creating Game Channels:
+- <a:snallabot_done:1288666730595618868> Creating Channels
+- <a:snallabot_done:1288666730595618868> Creating Notification Messages
+- <a:snallabot_done:1288666730595618868> Setting up notifier
+- <a:snallabot_waiting:1288664321781399584> Creating Scoreboard
+- <a:snallabot_waiting:1288664321781399584> Exporting
+- <a:snallabot_waiting:1288664321781399584> Logging`})
+
+    const season = weekSchedule[0].seasonIndex
+    const scoreboardMessage = formatScoreboard(week, season, weekSchedule, teamMap, assignments)
+    const res = await client.requestDiscord(`channels/${settings.commands.game_channel?.scoreboard_channel}/messages`, { method: "POST", body: { content: scoreboardMessage } })
+    const message = await res.json() as APIMessage
+    const weeklyState: WeekState = { week: week, seasonIndex: season, scoreboard: { id: message.id, id_type: DiscordIdType.MESSAGE }, channel_states: channelsMap }
+    const weekKey = `season${season}_week${week}`
+    await db.collection("league_settings").doc(guild_id).set({
+        [`commands.game_channels.weekly_states.${weekKey}`]: weeklyState
+    })
+    client.editOriginalInteraction(token, {
+        content: `Creating Game Channels:
+- <a:snallabot_done:1288666730595618868> Creating Channels
+- <a:snallabot_done:1288666730595618868> Creating Notification Messages
+- <a:snallabot_done:1288666730595618868> Setting up notifier
+- <a:snallabot_done:1288666730595618868> Creating Scoreboard
+- <a:snallabot_waiting:1288664321781399584> Exporting
+- <a:snallabot_waiting:1288664321781399584> Logging`})
+    const eres = await fetch(`https://snallabot.herokuapp.com/${guild_id}/export`, {
+        method: "POST",
+        body: JSON.stringify({
+            week: 102,
+            stage: -1,
+            auto: true,
+        }),
+    })
+    const exportEmoji = eres.ok ? "<a:snallabot_done:1288666730595618868>" : "<:snallabot_error:1288692698320076820>"
+    client.editOriginalInteraction(token, {
+        content: `Creating Game Channels:
+- <a:snallabot_done:1288666730595618868> Creating Channels
+- <a:snallabot_done:1288666730595618868> Creating Notification Messages
+- <a:snallabot_done:1288666730595618868> Setting up notifier
+- <a:snallabot_done:1288666730595618868> Creating Scoreboard
+- ${exportEmoji} Exporting
+- <a:snallabot_waiting:1288664321781399584> Logging`})
+    // TODO logger
+}
+
+export default {
+    async handleCommand(command: Command, client: DiscordClient, db: Firestore, ctx: ParameterizedContext) {
+        const { guild_id } = command
+        if (!command.data.options) {
+            throw new Error("game channels command not defined properly")
+        }
+        const options = command.data.options
+        const gameChannelsCommand = options[0] as APIApplicationCommandInteractionDataSubcommandOption
+        const subCommand = gameChannelsCommand.name
+        const doc = await db.collection("league_settings").doc(guild_id).get()
+        const leagueSettings = doc.exists ? doc.data() as LeagueSettings : {} as LeagueSettings
+        if (subCommand === "configure") {
+            if (!gameChannelsCommand.options || !gameChannelsCommand.options[0] || !gameChannelsCommand.options[1] || !gameChannelsCommand.options[2] || !gameChannelsCommand.options[3]) {
+                throw new Error("game_channels configure command misconfigured")
+            }
+            const gameChannelCategory = (gameChannelsCommand.options[0] as APIApplicationCommandInteractionDataChannelOption).value
+            const scoreboardChannel = (gameChannelsCommand.options[1] as APIApplicationCommandInteractionDataChannelOption).value
+            const waitPing = (gameChannelsCommand.options[2] as APIApplicationCommandInteractionDataIntegerOption).value
+            const adminRole = (gameChannelsCommand.options[3] as APIApplicationCommandInteractionDataRoleOption).value
+            await db.collection("league_settings").doc(guild_id).set({
+                commands: {
+                    game_channel: {
+                        admin: { id: adminRole, id_type: DiscordIdType.ROLE },
+                        default_category: { id: gameChannelCategory, id_type: DiscordIdType.CATEGORY },
+                        scoreboard_channel: { id: scoreboardChannel, id_type: DiscordIdType.CHANNEL },
+                        wait_ping: waitPing,
+                        weekly_states: leagueSettings.commands.game_channel?.weekly_states || {}
+                    }
+                }
+            }, { merge: true })
+            respond(ctx, createMessageResponse(`game channels commands are configured! Configuration:
+
+- Admin Role: <@&${adminRole}>
+- Game Channel Category: <#${gameChannelCategory}>
+- Scoreboard Channel: <#${scoreboardChannel}>
+- Notification Period: Every ${waitPing} hour(s)`))
+        } else if (subCommand === "create" || subCommand === "wildcard" || subCommand === "divisional" || subCommand === "conference" || subCommand === "superbowl") {
+            const week = (() => {
+                if (subCommand === "create") {
+                    if (!gameChannelsCommand.options || !gameChannelsCommand.options[0]) {
+                        throw new Error("game_channels create command misconfigured")
+                    }
+                    const week = (gameChannelsCommand.options[0] as APIApplicationCommandInteractionDataIntegerOption).value
+                    if (week < 1 || week > 23 || week === 22) {
+                        throw new Error("Invalid week number. Valid weeks are week 1-18 and use specific playoff commands or playoff week numbers: Wildcard = 19, Divisional = 20, Conference Championship = 21, Super Bowl = 23")
+                    }
+                }
+                if (subCommand === "wildcard") {
+                    return 19
+                }
+                if (subCommand === "divisional") {
+                    return 20
+                }
+                if (subCommand === "conference") {
+                    return 21
+                }
+                if (subCommand === "superbowl") {
+                    return 23
+                }
+            })()
+            const categoryOverride = (() => {
+                if (subCommand === "create") {
+                    return (gameChannelsCommand.options?.[1] as APIApplicationCommandInteractionDataChannelOption)?.value
+                } else {
+                    return (gameChannelsCommand.options?.[0] as APIApplicationCommandInteractionDataChannelOption)?.value
+                }
+            })()
+            if (!leagueSettings.commands.game_channel?.scoreboard_channel) {
+                throw new Error("Game channels are not configured! run /game_channels configure first")
+            }
+            if (!leagueSettings.commands.madden_league?.league_id) {
+                throw new Error("No madden league linked. Setup snallabot with your Madden league first")
+            }
+            const category = categoryOverride ? categoryOverride : leagueSettings.commands.game_channel.default_category.id
+            respond(ctx, deferMessage())
+        } else if (subCommand === "clear") {
+        } else {
+        }
+        respond(ctx, createMessageResponse(`bot is working`))
+        throw new Error(`game_channels ${subCommand} not implemented`)
+
+    },
+    commandDefinition(): RESTPostAPIApplicationCommandsJSONBody {
+        return {
+            name: "game_channels",
+            description: "handles Snallabot game channels",
+            type: ApplicationCommandType.ChatInput,
+            options: [
+                {
+                    type: ApplicationCommandOptionType.Subcommand,
+                    name: "create",
+                    description: "create game channels",
+                    options: [
+                        {
+                            type: ApplicationCommandOptionType.Integer,
+                            name: "week",
+                            description: "the week number to create for",
+                            required: true,
+                        },
+                        {
+                            type: ApplicationCommandOptionType.Channel,
+                            name: "category_override",
+                            description: "overrides the category to create channels in",
+                            channel_types: [ChannelType.GuildCategory],
+                            required: false,
+                        },
+                    ],
+                },
+                {
+                    type: ApplicationCommandOptionType.Subcommand,
+                    name: "wildcard",
+                    description: "creates wildcard week game channels",
+                    options: [
+                        {
+                            type: ApplicationCommandOptionType.Channel,
+                            name: "category_override",
+                            description: "overrides the category to create channels in",
+                            channel_types: [ChannelType.GuildCategory],
+                            required: false,
+                        },
+                    ],
+                },
+                {
+                    type: ApplicationCommandOptionType.Subcommand,
+                    name: "divisional",
+                    description: "creates divisional week game channels",
+                    options: [
+                        {
+                            type: ApplicationCommandOptionType.Channel,
+                            name: "category_override",
+                            description: "overrides the category to create channels in",
+                            channel_types: [ChannelType.GuildCategory],
+                            required: false,
+                        },
+                    ],
+                },
+                {
+                    type: ApplicationCommandOptionType.Subcommand,
+                    name: "conference",
+                    description: "creates conference championship week game channels",
+                    options: [
+                        {
+                            type: ApplicationCommandOptionType.Channel,
+                            name: "category_override",
+                            description: "overrides the category to create channels in",
+                            channel_types: [ChannelType.GuildCategory],
+                            required: false,
+                        },
+                    ],
+                },
+                {
+                    type: ApplicationCommandOptionType.Subcommand,
+                    name: "superbowl",
+                    description: "creates superbowl week game channels",
+                    options: [
+                        {
+                            type: ApplicationCommandOptionType.Channel,
+                            name: "category_override",
+                            description: "overrides the category to create channels in",
+                            channel_types: [ChannelType.GuildCategory],
+                            required: false,
+                        },
+                    ],
+                },
+                {
+                    type: ApplicationCommandOptionType.Subcommand,
+                    name: "clear",
+                    description: "clear all game channels",
+                    options: [
+                        {
+                            type: ApplicationCommandOptionType.Integer,
+                            name: "week",
+                            description: "the week number to clear",
+                            required: false,
+                        }
+                    ]
+                },
+                {
+                    type: ApplicationCommandOptionType.Subcommand,
+                    name: "configure",
+                    description: "sets up game channels",
+                    options: [
+                        {
+                            type: ApplicationCommandOptionType.Channel,
+                            name: "category",
+                            description: "category to create channels under",
+                            required: true,
+                            channel_types: [ChannelType.GuildCategory],
+                        },
+                        {
+                            type: ApplicationCommandOptionType.Channel,
+                            name: "scoreboard_channel",
+                            description: "channel to post scoreboard",
+                            required: true,
+                            channel_types: [0],
+                        },
+                        {
+                            type: ApplicationCommandOptionType.Integer,
+                            name: "notification_period",
+                            description: "number of hours to wait before notifying unscheduled games",
+                            required: true,
+                        },
+                        {
+                            type: ApplicationCommandOptionType.Role,
+                            name: "admin_role",
+                            description: "admin role to confirm force wins",
+                            required: true,
+                        },
+                    ],
+                },
+            ]
+        }
+    }
+} as CommandHandler

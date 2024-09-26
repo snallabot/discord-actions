@@ -3,27 +3,9 @@ import { CommandHandler, Command } from "../commands_handler"
 import { respond, createMessageResponse, DiscordClient } from "../discord_utils"
 import { APIApplicationCommandInteractionDataIntegerOption, ApplicationCommandOptionType, ApplicationCommandType, RESTPostAPIApplicationCommandsJSONBody } from "discord-api-types/v10"
 import { Firestore } from "firebase-admin/firestore"
-import { MADDEN_SEASON, MaddenGame, Team } from "../madden/madden_types"
+import { MADDEN_SEASON, MaddenGame, Team, getMessageForWeek } from "../madden/madden_types"
 import MaddenClient from "../madden/client"
 import { LeagueSettings } from "../settings_db"
-
-function getMessageForWeek(week: number) {
-    if (week < 1 || week > 23 || week === 22) {
-        throw new Error("Invalid week number. Valid weeks are week 1-18 and for playoffs: Wildcard = 19, Divisional = 20, Conference Championship = 21, Super Bowl = 23")
-    }
-    if (week <= 18) {
-        return `Week ${week}`
-    } else if (week === 19) {
-        return "Wildcard Round"
-    } else if (week === 20) {
-        return "Divisional Round"
-    } else if (week === 21) {
-        return "Conference Championship Round"
-    } else if (week === 23) {
-        return "Super Bowl"
-    }
-    throw new Error("Unknown week " + week)
-}
 
 function format(schedule: MaddenGame[], teams: Team[], week: number) {
     const teamMap = new Map<Number, Team>()
