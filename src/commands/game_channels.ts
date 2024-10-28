@@ -32,12 +32,22 @@ function notifierMessage(users: string): string {
     return `${users}\nTime to schedule your game! Once your game is scheduled, hit the ⏰. Otherwise, You will be notified again.\nWhen you're done playing, let me know with 🏆.\nNeed to sim this game? React with ⏭ AND the home/away to force win. Choose both home and away to fair sim!`
 }
 
+function formatTeamMessageName(discordId: string | undefined, gamerTag: string | undefined) {
+    if (discordId) {
+        return `<@${discordId}>`
+    }
+    if (gamerTag) {
+        return gamerTag
+    }
+    return "CPU"
+}
+
 function formatScoreboard(week: number, seasonIndex: number, games: MaddenGame[], teamMap: Map<Number, Team>, assignments: TeamAssignments) {
     const scoreboardGames = games.sort((g1, g2) => g1.scheduleId - g2.scheduleId).map(game => {
         const awayTeamName = teamMap.get(game.awayTeamId)?.displayName
         const homeTeamName = teamMap.get(game.homeTeamId)?.displayName
-        const awayDiscordUser = assignments[game.awayTeamId].discord_user?.id
-        const homeDiscordUser = assignments[game.homeTeamId].discord_user?.id
+        const awayDiscordUser = assignments?.[game.awayTeamId]?.discord_user?.id
+        const homeDiscordUser = assignments?.[game.homeTeamId]?.discord_user?.id
         const awayUser = (awayDiscordUser ? `<@${awayDiscordUser}>` : "") || teamMap.get(game.awayTeamId)?.userName || "CPU"
         const homeUser = (homeDiscordUser ? `<@${homeDiscordUser}>` : "") || teamMap.get(game.homeTeamId)?.userName || "CPU"
         const awayTeam = `${awayTeamName} (${awayUser})`
@@ -127,8 +137,8 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
         const gameChannelsWithMessage = await Promise.all(gameChannels.map(async gameChannel => {
             const channel = gameChannel.channel.id
             const game = gameChannel.game
-            const awayUser = assignments?.[game.awayTeamId]?.discord_user?.id || teamMap.get(game.awayTeamId)?.userName || "CPU"
-            const homeUser = assignments?.[game.homeTeamId]?.discord_user?.id || teamMap.get(game.homeTeamId)?.userName || "CPU"
+            const awayUser = formatTeamMessageName(assignments?.[game.awayTeamId]?.discord_user?.id, teamMap.get(game.awayTeamId)?.userName)
+            const homeUser = formatTeamMessageName(assignments?.[game.homeTeamId]?.discord_user?.id, teamMap.get(game.homeTeamId)?.userName)
             const res = await client.requestDiscord(`channels/${channel}/messages`, { method: "POST", body: { content: notifierMessage(`${awayUser} at ${homeUser}`) } })
             const message = await res.json() as APIMessage
             return { message: { id: message.id, id_type: DiscordIdType.MESSAGE }, ...gameChannel }
@@ -210,6 +220,7 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
 - ${exportEmoji} Exporting
 - <a:snallabot_done:1288666730595618868> Logging`})
     } catch (e) {
+        console.error(e)
         client.editOriginalInteraction(token, { content: `Game Channels Create Failed with Error: ${e}` })
     }
 }
