@@ -306,7 +306,10 @@ export default {
                 if (subCommand === "superbowl") {
                     return 23
                 }
-            })() || -1
+            })()
+            if (!week) {
+                throw new Error("Invalid Week found")
+            }
             const categoryOverride = (() => {
                 if (subCommand === "create") {
                     return (gameChannelsCommand.options?.[1] as APIApplicationCommandInteractionDataChannelOption)?.value
