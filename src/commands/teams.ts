@@ -86,8 +86,8 @@ export default {
             }
             const channel = (teamsCommand.options[0] as APIApplicationCommandInteractionDataChannelOption).value
             const useRoleUpdates = (teamsCommand.options?.[1] as APIApplicationCommandInteractionDataBooleanOption)?.value || false
-            const oldChannelId = leagueSettings.commands.teams?.channel?.id
-            const oldMessageId = leagueSettings.commands.teams?.messageId?.id || ""
+            const oldChannelId = leagueSettings?.commands?.teams?.channel?.id
+            const oldMessageId = leagueSettings?.commands?.teams?.messageId?.id || ""
             if (oldChannelId && oldChannelId !== channel) {
                 const message = await fetchTeamsMessage(leagueSettings)
                 const newMessageId = await moveTeamsMessage(client, oldChannelId, channel, oldMessageId, message)
@@ -103,7 +103,7 @@ export default {
                 }, { merge: true })
                 respond(ctx, createMessageResponse("Teams Configured"))
             } else {
-                const oldMessageId = leagueSettings.commands.teams?.messageId.id
+                const oldMessageId = leagueSettings?.commands?.teams?.messageId.id
                 if (oldMessageId) {
                     try {
                         await client.requestDiscord(`channels/${channel}/messages/${oldMessageId}`, { method: "GET" })
@@ -111,7 +111,7 @@ export default {
                             commands: {
                                 teams: {
                                     useRoleUpdates: useRoleUpdates,
-                                    assignments: leagueSettings.commands.teams?.assignments || {},
+                                    assignments: leagueSettings?.commands.teams?.assignments || {},
                                 }
                             }
                         }, { merge: true })
