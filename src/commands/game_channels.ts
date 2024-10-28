@@ -204,7 +204,7 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
 - <a:snallabot_done:1288666730595618868> Creating Scoreboard
 - ${exportEmoji} Exporting
 - <a:snallabot_waiting:1288664321781399584> Logging`})
-        if (settings.commands.logger) {
+        if (settings?.commands?.logger) {
             const logger = createLogger(settings.commands.logger)
             await logger.logUsedCommand("game_channels create", author, client)
         }
