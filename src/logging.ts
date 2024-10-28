@@ -2,8 +2,8 @@ import { DiscordClient } from "./discord_utils"
 import { ChannelId, LoggerConfiguration, UserId } from "./settings_db"
 import { APIChannel, APIMessage, APIThreadChannel } from "discord-api-types/v10"
 
+// feels like setting a max is a good idea. 1000 messages
 const MAX_PAGES = 10
-
 
 async function getMessages(channelId: ChannelId, client: DiscordClient): Promise<APIMessage[]> {
     let messages: APIMessage[] = await client.requestDiscord(
@@ -13,7 +13,6 @@ async function getMessages(channelId: ChannelId, client: DiscordClient): Promise
         }
     ).then((r) => r.json())
     let newMessages = messages
-    // feels like setting a max is a good idea. 1000 messages
     let page = 0
     while (newMessages.length === 100 && page < MAX_PAGES) {
         const lastMessage = messages[messages.length - 1]
@@ -74,7 +73,7 @@ export default (config: LoggerConfiguration) => ({
                     await client.requestDiscord(`channels/${threadId}/messages`, {
                         method: "POST",
                         body: {
-                            content: `<@${message.user}>: ${message.content}`,
+                            content: `(${message.time}) <@${message.user}>: ${message.content}`,
                             allowed_mentions: {
                                 parse: [],
                             },
