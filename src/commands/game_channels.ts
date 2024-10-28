@@ -179,9 +179,6 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
         const message = await res.json() as APIMessage
         const weeklyState: WeekState = { week: week, seasonIndex: season, scoreboard: { id: message.id, id_type: DiscordIdType.MESSAGE }, channel_states: channelsMap }
         const weekKey = `season${season}_week${week}`
-        await db.collection("league_settings").doc(guild_id).set({
-            [`commands.game_channels.weekly_states.${weekKey}`]: weeklyState
-        })
         client.editOriginalInteraction(token, {
             content: `Creating Game Channels:
 - <a:snallabot_done:1288666730595618868> Creating Channels
@@ -219,6 +216,9 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
 - <a:snallabot_done:1288666730595618868> Creating Scoreboard
 - ${exportEmoji} Exporting
 - <a:snallabot_done:1288666730595618868> Logging`})
+        await db.collection("league_settings").doc(guild_id).set({
+            [`commands.game_channels.weekly_states.${weekKey}`]: weeklyState
+        })
     } catch (e) {
         console.error(e)
         client.editOriginalInteraction(token, { content: `Game Channels Create Failed with Error: ${e}` })
