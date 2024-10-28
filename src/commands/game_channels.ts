@@ -73,7 +73,7 @@ function formatScoreboard(week: number, seasonIndex: number, games: MaddenGame[]
 async function createGameChannels(client: DiscordClient, db: Firestore, token: string, guild_id: string, settings: LeagueSettings, week: number, category: string, author: UserId) {
     try {
         const leagueId = (settings.commands.madden_league as Required<MaddenLeagueConfiguration>).league_id
-        client.editOriginalInteraction(token, {
+        await client.editOriginalInteraction(token, {
             content: `Creating Game Channels:
 - <a:snallabot_loading:1288662414191104111> Creating Channels
 - <a:snallabot_waiting:1288664321781399584> Creating Notification Messages
@@ -85,7 +85,7 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
         try {
             weekSchedule = (await MaddenClient.getLatestWeekSchedule(leagueId, week)).sort((g, g2) => g.scheduleId - g2.scheduleId)
         } catch (e) {
-            client.editOriginalInteraction(token, {
+            await client.editOriginalInteraction(token, {
                 content: `Creating Game Channels:
 - <a:snallabot_loading:1288662414191104111> Creating Channels, automatically retrieving the week for you! Please wait..
 - <a:snallabot_waiting:1288664321781399584> Creating Notification Messages
@@ -103,7 +103,7 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
             try {
                 weekSchedule = (await MaddenClient.getLatestWeekSchedule(leagueId, week)).sort((g, g2) => g.scheduleId - g2.scheduleId)
             } catch (e) {
-                client.editOriginalInteraction(token, { content: "This week is not exported! Export it via dashboard or companion app" })
+                await client.editOriginalInteraction(token, { content: "This week is not exported! Export it via dashboard or companion app" })
                 return
             }
         }
@@ -125,7 +125,7 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
             const channel = await res.json() as APIChannel
             return { game: game, scheduleId: game.scheduleId, channel: { id: channel.id, id_type: DiscordIdType.CHANNEL } }
         }))
-        client.editOriginalInteraction(token, {
+        await client.editOriginalInteraction(token, {
             content: `Creating Game Channels:
 - <a:snallabot_done:1288666730595618868> Creating Channels
 - <a:snallabot_waiting:1288664321781399584> Creating Notification Messages
@@ -143,7 +143,7 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
             const message = await res.json() as APIMessage
             return { message: { id: message.id, id_type: DiscordIdType.MESSAGE }, ...gameChannel }
         }))
-        client.editOriginalInteraction(token, {
+        await client.editOriginalInteraction(token, {
             content: `Creating Game Channels:
 - <a:snallabot_done:1288666730595618868> Creating Channels
 - <a:snallabot_done:1288666730595618868> Creating Notification Messages
@@ -164,7 +164,7 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
         }))
         const channelsMap = {} as { [key: string]: GameChannel }
         finalGameChannels.forEach(g => channelsMap[g.channel.id] = g)
-        client.editOriginalInteraction(token, {
+        await client.editOriginalInteraction(token, {
             content: `Creating Game Channels:
 - <a:snallabot_done:1288666730595618868> Creating Channels
 - <a:snallabot_done:1288666730595618868> Creating Notification Messages
@@ -179,7 +179,7 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
         const message = await res.json() as APIMessage
         const weeklyState: WeekState = { week: week, seasonIndex: season, scoreboard: { id: message.id, id_type: DiscordIdType.MESSAGE }, channel_states: channelsMap }
         const weekKey = `season${season}_week${week}`
-        client.editOriginalInteraction(token, {
+        await client.editOriginalInteraction(token, {
             content: `Creating Game Channels:
 - <a:snallabot_done:1288666730595618868> Creating Channels
 - <a:snallabot_done:1288666730595618868> Creating Notification Messages
@@ -196,7 +196,7 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
             }),
         })
         const exportEmoji = eres.ok ? "<a:snallabot_done:1288666730595618868>" : "<:snallabot_error:1288692698320076820>"
-        client.editOriginalInteraction(token, {
+        await client.editOriginalInteraction(token, {
             content: `Creating Game Channels:
 - <a:snallabot_done:1288666730595618868> Creating Channels
 - <a:snallabot_done:1288666730595618868> Creating Notification Messages
@@ -208,7 +208,7 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
             const logger = createLogger(settings.commands.logger)
             await logger.logUsedCommand("game_channels create", author, client)
         }
-        client.editOriginalInteraction(token, {
+        await client.editOriginalInteraction(token, {
             content: `Game Channels Successfully Created :
 - <a:snallabot_done:1288666730595618868> Creating Channels
 - <a:snallabot_done:1288666730595618868> Creating Notification Messages
@@ -216,18 +216,18 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
 - <a:snallabot_done:1288666730595618868> Creating Scoreboard
 - ${exportEmoji} Exporting
 - <a:snallabot_done:1288666730595618868> Logging`})
-        await db.collection("league_settings").doc(guild_id).set({
+        await db.collection("league_settings").doc(guild_id).update({
             [`commands.game_channel.weekly_states.${weekKey}`]: weeklyState
-        }, { merge: true })
+        })
     } catch (e) {
         console.error(e)
-        client.editOriginalInteraction(token, { content: `Game Channels Create Failed with Error: ${e}` })
+        await client.editOriginalInteraction(token, { content: `Game Channels Create Failed with Error: ${e}` })
     }
 }
 
 async function clearGameChannels(client: DiscordClient, db: Firestore, token: string, guild_id: string, settings: LeagueSettings, author: UserId) {
     try {
-        client.editOriginalInteraction(token, { content: `Clearing Game Channels...` })
+        await client.editOriginalInteraction(token, { content: `Clearing Game Channels...` })
         const weekStates = settings.commands.game_channel?.weekly_states || {}
         const channelsToClear = Object.entries(weekStates).flatMap(entry => {
             const weekState = entry[1]
@@ -243,7 +243,7 @@ async function clearGameChannels(client: DiscordClient, db: Firestore, token: st
         }))
 
         if (settings.commands.logger?.channel) {
-            client.editOriginalInteraction(token, { content: `Logging Game Channels...` })
+            await client.editOriginalInteraction(token, { content: `Logging Game Channels...` })
             const logger = createLogger(settings.commands.logger)
             await logger.logChannels(channelsToClear, client)
             await logger.logUsedCommand("game_channels clear", author, client)
@@ -252,9 +252,9 @@ async function clearGameChannels(client: DiscordClient, db: Firestore, token: st
                 return await client.requestDiscord(`/channels/${channel.id}`, { method: "DELETE" })
             }))
         }
-        client.editOriginalInteraction(token, { content: `Game Channels Cleared` })
+        await client.editOriginalInteraction(token, { content: `Game Channels Cleared` })
     } catch (e) {
-        client.editOriginalInteraction(token, { content: `Game Channels could not be cleared properly, Error: ${e}` })
+        await client.editOriginalInteraction(token, { content: `Game Channels could not be cleared properly, Error: ${e}` })
     }
 }
 
