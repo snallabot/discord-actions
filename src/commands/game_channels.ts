@@ -318,9 +318,9 @@ export default {
         } else if (subCommand === "clear") {
             respond(ctx, deferMessage())
             clearGameChannels(client, db, token, guild_id, leagueSettings, author)
+        } else {
+            throw new Error(`game_channels ${subCommand} not implemented`)
         }
-        throw new Error(`game_channels ${subCommand} not implemented`)
-
     },
     commandDefinition(): RESTPostAPIApplicationCommandsJSONBody {
         return {
