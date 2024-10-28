@@ -71,8 +71,10 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
 - <a:snallabot_waiting:1288664321781399584> Creating Scoreboard
 - <a:snallabot_waiting:1288664321781399584> Exporting
 - <a:snallabot_waiting:1288664321781399584> Logging`})
-        let weekSchedule = (await MaddenClient.getLatestWeekSchedule(leagueId, week)).sort((g, g2) => g.scheduleId - g2.scheduleId)
-        if (weekSchedule.length === 0 || weekSchedule.every(g => g.awayTeamId === 0 && g.homeTeamId === 0)) {
+        let weekSchedule;
+        try {
+            weekSchedule = (await MaddenClient.getLatestWeekSchedule(leagueId, week)).sort((g, g2) => g.scheduleId - g2.scheduleId)
+        } catch (e) {
             client.editOriginalInteraction(token, {
                 content: `Creating Game Channels:
 - <a:snallabot_loading:1288662414191104111> Creating Channels, automatically retrieving the week for you! Please wait..
@@ -88,12 +90,14 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
                     stage: 1,
                 }),
             })
-            weekSchedule = (await MaddenClient.getLatestWeekSchedule(leagueId, week)).sort((g, g2) => g.scheduleId - g2.scheduleId)
+            try {
+                weekSchedule = (await MaddenClient.getLatestWeekSchedule(leagueId, week)).sort((g, g2) => g.scheduleId - g2.scheduleId)
+            } catch (e) {
+                client.editOriginalInteraction(token, { content: "This week is not exported! Export it via dashboard or companion app" })
+                return
+            }
         }
-        if (weekSchedule.length === 0) {
-            client.editOriginalInteraction(token, { content: "This week is not exported! Export it via dashboard or companion app" })
-            return
-        }
+
         const teams = await MaddenClient.getLatestTeams(leagueId)
         const teamMap = new Map<Number, Team>()
         teams.forEach(t => teamMap.set(t.teamId, t))
