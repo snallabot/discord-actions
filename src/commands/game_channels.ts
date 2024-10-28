@@ -50,8 +50,8 @@ function formatScoreboard(week: number, seasonIndex: number, games: MaddenGame[]
         const homeDiscordUser = assignments?.[game.homeTeamId]?.discord_user?.id
         const awayUser = (awayDiscordUser ? `<@${awayDiscordUser}>` : "") || teamMap.get(game.awayTeamId)?.userName || "CPU"
         const homeUser = (homeDiscordUser ? `<@${homeDiscordUser}>` : "") || teamMap.get(game.homeTeamId)?.userName || "CPU"
-        const awayTeam = `${awayTeamName} (${awayUser})`
-        const homeTeam = `${homeTeamName} (${homeUser})`
+        const awayTeam = `${awayUser} ${awayTeamName}`
+        const homeTeam = `${homeUser} ${homeTeamName}`
         if (game.awayScore == 0 && game.homeScore == 0) {
             return `${awayTeam} vs ${homeTeam}`
         } else {
@@ -67,7 +67,7 @@ function formatScoreboard(week: number, seasonIndex: number, games: MaddenGame[]
         }
     }).join("\n")
 
-    return `# Year ${seasonIndex + 2024} ${getMessageForWeek(week)} Scoreboard\n${scoreboardGames}`
+    return `# ${seasonIndex + 2024} Season ${getMessageForWeek(week)} Scoreboard\n${scoreboardGames}`
 }
 
 async function createGameChannels(client: DiscordClient, db: Firestore, token: string, guild_id: string, settings: LeagueSettings, week: number, category: string, author: UserId) {
@@ -175,7 +175,7 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
 
         const season = weekSchedule[0].seasonIndex
         const scoreboardMessage = formatScoreboard(week, season, weekSchedule, teamMap, assignments)
-        const res = await client.requestDiscord(`channels/${settings.commands.game_channel?.scoreboard_channel.id}/messages`, { method: "POST", body: { content: scoreboardMessage } })
+        const res = await client.requestDiscord(`channels/${settings.commands.game_channel?.scoreboard_channel.id}/messages`, { method: "POST", body: { content: scoreboardMessage, allowed_mentions: { parse: [] } } })
         const message = await res.json() as APIMessage
         const weeklyState: WeekState = { week: week, seasonIndex: season, scoreboard: { id: message.id, id_type: DiscordIdType.MESSAGE }, channel_states: channelsMap }
         const weekKey = `season${season}_week${week}`
@@ -218,7 +218,7 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
 - <a:snallabot_done:1288666730595618868> Logging`})
         await db.collection("league_settings").doc(guild_id).set({
             [`commands.game_channels.weekly_states.${weekKey}`]: weeklyState
-        })
+        }, { merge: true })
     } catch (e) {
         console.error(e)
         client.editOriginalInteraction(token, { content: `Game Channels Create Failed with Error: ${e}` })
@@ -226,21 +226,22 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
 }
 
 async function clearGameChannels(client: DiscordClient, db: Firestore, token: string, guild_id: string, settings: LeagueSettings, author: UserId) {
-    client.editOriginalInteraction(token, { content: `Clearing Game Channels...` })
-    const weekStates = settings.commands.game_channel?.weekly_states || {}
-    const channelsToClear = Object.entries(weekStates).flatMap(entry => {
-        const weekState = entry[1]
-        return Object.values(weekState.channel_states)
-    }).map(channelStates => {
-        return channelStates.channel
-    })
-    await Promise.all(Object.keys(weekStates).map(async weekKey => {
-        db.collection("league_settings").doc(guild_id).set({
-            [`commands.game_channels.weekly_states.${weekKey}.channel_states`]: FieldValue.delete()
-        })
-
-    }))
     try {
+        client.editOriginalInteraction(token, { content: `Clearing Game Channels...` })
+        const weekStates = settings.commands.game_channel?.weekly_states || {}
+        const channelsToClear = Object.entries(weekStates).flatMap(entry => {
+            const weekState = entry[1]
+            return Object.values(weekState.channel_states)
+        }).map(channelStates => {
+            return channelStates.channel
+        })
+        await Promise.all(Object.keys(weekStates).map(async weekKey => {
+            db.collection("league_settings").doc(guild_id).update({
+                [`commands.game_channels.weekly_states.${weekKey}.channel_states`]: FieldValue.delete()
+            })
+
+        }))
+
         if (settings.commands.logger?.channel) {
             client.editOriginalInteraction(token, { content: `Logging Game Channels...` })
             const logger = createLogger(settings.commands.logger)
