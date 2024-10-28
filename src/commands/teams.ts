@@ -53,7 +53,7 @@ function formatTeamMessage(teams: Team[], teamAssignments: TeamAssignments): str
 }
 
 async function fetchTeamsMessage(settings: LeagueSettings): Promise<string> {
-    if (settings.commands.madden_league?.league_id) {
+    if (settings?.commands?.madden_league?.league_id) {
         const teams = await MaddenClient.getLatestTeams(settings.commands.madden_league.league_id)
         return createTeamsMessage(settings, teams)
     } else {
@@ -62,7 +62,7 @@ async function fetchTeamsMessage(settings: LeagueSettings): Promise<string> {
 }
 
 function createTeamsMessage(settings: LeagueSettings, teams: Team[]): string {
-    if (settings.commands.madden_league?.league_id) {
+    if (settings?.commands?.madden_league?.league_id) {
         return formatTeamMessage(teams, settings.commands.teams?.assignments || {})
     } else {
         return "# Teams\nNo Madden League connected. Connect Snallabot to your league and reconfigure"
@@ -149,10 +149,10 @@ export default {
             }
             const teamSearchPhrase = (teamsCommand.options[0] as APIApplicationCommandInteractionDataStringOption).value.toLowerCase()
             const user = (teamsCommand.options[1] as APIApplicationCommandInteractionDataUserOption).value
-            if (!leagueSettings.commands.madden_league?.league_id) {
+            if (!leagueSettings?.commands?.madden_league?.league_id) {
                 throw new Error("No Madden league linked, setup the bot with your madden league first.")
             }
-            if (!leagueSettings.commands.teams?.channel.id) {
+            if (!leagueSettings?.commands?.teams?.channel.id) {
                 throw new Error("Teams not configured, run /teams configure first")
             }
             const teams = await MaddenClient.getLatestTeams(leagueSettings.commands.madden_league.league_id)
@@ -187,7 +187,7 @@ export default {
                 throw new Error("teams free misconfigured")
             }
             const teamSearchPhrase = (teamsCommand.options[0] as APIApplicationCommandInteractionDataStringOption).value.toLowerCase()
-            if (!leagueSettings.commands.madden_league?.league_id) {
+            if (!leagueSettings?.commands?.madden_league?.league_id) {
                 throw new Error("No Madden league linked, setup the bot with your madden league first.")
             }
             if (!leagueSettings.commands.teams?.channel.id) {
