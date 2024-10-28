@@ -217,7 +217,7 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
 - ${exportEmoji} Exporting
 - <a:snallabot_done:1288666730595618868> Logging`})
         await db.collection("league_settings").doc(guild_id).set({
-            [`commands.game_channels.weekly_states.${weekKey}`]: weeklyState
+            [`commands.game_channel.weekly_states.${weekKey}`]: weeklyState
         }, { merge: true })
     } catch (e) {
         console.error(e)
@@ -237,7 +237,7 @@ async function clearGameChannels(client: DiscordClient, db: Firestore, token: st
         })
         await Promise.all(Object.keys(weekStates).map(async weekKey => {
             db.collection("league_settings").doc(guild_id).update({
-                [`commands.game_channels.weekly_states.${weekKey}.channel_states`]: FieldValue.delete()
+                [`commands.game_channel.weekly_states.${weekKey}.channel_states`]: FieldValue.delete()
             })
 
         }))
