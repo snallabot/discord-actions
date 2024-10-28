@@ -144,8 +144,8 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
         await react(client, channelId, messageId, SnallabotReactions.FW_AWAY)
         await react(client, channelId, messageId, SnallabotReactions.FORCE_WIN)
         const { game, ...rest } = gameChannel
-        const epochTime = new Date().getTime()
-        return { ...rest, state: "CREATED", notifiedTime: epochTime, channel: { id: channelId, id_type: DiscordIdType.CHANNEL }, message: { id: messageId, id_type: DiscordIdType.MESSAGE } }
+        const createdTime = new Date().getTime()
+        return { ...rest, state: "CREATED", notifiedTime: createdTime, channel: { id: channelId, id_type: DiscordIdType.CHANNEL }, message: { id: messageId, id_type: DiscordIdType.MESSAGE } }
     }))
     const channelsMap = {} as { [key: string]: GameChannel }
     finalGameChannels.forEach(g => channelsMap[g.channel.id] = g)
