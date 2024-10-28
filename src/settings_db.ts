@@ -42,8 +42,10 @@ export type Created = "CREATED"
 export type ForceWinRequested = "FORCE_WIN_REQUESTED"
 export type GameChannelState = Created | ForceWinRequested
 export type GameChannel = { channel: ChannelId, message: MessageId, scheduleId: number, state: GameChannelState, notifiedTime: number }
-export type WeekState = { week: number, seasonIndex: number, scoreboard: MessageId, channel_states: { [key: string]: GameChannel } }
-export type GameChannelConfiguration = { admin: RoleId, default_category: CategoryId, scoreboard_channel: ChannelId, wait_ping: number, weekly_states: { [key: string]: WeekState } }
+export type ChannelIdKey = string
+export type WeekState = { week: number, seasonIndex: number, scoreboard: MessageId, channel_states: { [key: ChannelIdKey]: GameChannel } }
+type SeasonWeekIndex = string
+export type GameChannelConfiguration = { admin: RoleId, default_category: CategoryId, scoreboard_channel: ChannelId, wait_ping: number, weekly_states: { [key: SeasonWeekIndex]: WeekState } }
 
 export type UserStreamCount = { user: UserId, count: number }
 export type StreamCountConfiguration = { channel: ChannelId, message: MessageId, counts: Array<UserStreamCount> }

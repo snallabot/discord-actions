@@ -2,10 +2,11 @@ import { ParameterizedContext } from "koa"
 import { CommandHandler, Command } from "../commands_handler"
 import { respond, createMessageResponse, DiscordClient, deferMessage } from "../discord_utils"
 import { APIApplicationCommandInteractionDataChannelOption, APIApplicationCommandInteractionDataIntegerOption, APIApplicationCommandInteractionDataRoleOption, APIApplicationCommandInteractionDataSubcommandOption, APIChannel, APIMessage, ApplicationCommandOptionType, ApplicationCommandType, ChannelType, RESTPostAPIApplicationCommandsJSONBody } from "discord-api-types/v10"
-import { Firestore } from "firebase-admin/firestore"
-import { DiscordIdType, GameChannel, LeagueSettings, MaddenLeagueConfiguration, TeamAssignments, WeekState } from "../settings_db"
+import { FieldValue, Firestore } from "firebase-admin/firestore"
+import { DiscordIdType, GameChannel, LeagueSettings, MaddenLeagueConfiguration, TeamAssignments, UserId, WeekState } from "../settings_db"
 import MaddenClient from "../madden/client"
 import { getMessageForWeek, MaddenGame, Team } from "../madden/madden_types"
+import createLogger from "../logging"
 
 const SNALLABOT_USER = "970091866450198548"
 enum SnallabotReactions {
@@ -59,7 +60,7 @@ function formatScoreboard(week: number, seasonIndex: number, games: MaddenGame[]
     return `# Year ${seasonIndex + 2024} ${getMessageForWeek(week)} Scoreboard\n${scoreboardGames}`
 }
 
-async function createGameChannels(client: DiscordClient, db: Firestore, token: string, guild_id: string, settings: LeagueSettings, week: number, category: string) {
+async function createGameChannels(client: DiscordClient, db: Firestore, token: string, guild_id: string, settings: LeagueSettings, week: number, category: string, author: UserId) {
     const leagueId = (settings.commands.madden_league as Required<MaddenLeagueConfiguration>).league_id
     client.editOriginalInteraction(token, {
         content: `Creating Game Channels:
@@ -191,12 +192,56 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
 - <a:snallabot_done:1288666730595618868> Creating Scoreboard
 - ${exportEmoji} Exporting
 - <a:snallabot_waiting:1288664321781399584> Logging`})
-    // TODO logger
+    if (settings.commands.logger) {
+        const logger = createLogger(settings.commands.logger)
+        await logger.logUsedCommand("game_channels create", author, client)
+    }
+    client.editOriginalInteraction(token, {
+        content: `Game Channels Successfully Created :
+- <a:snallabot_done:1288666730595618868> Creating Channels
+- <a:snallabot_done:1288666730595618868> Creating Notification Messages
+- <a:snallabot_done:1288666730595618868> Setting up notifier
+- <a:snallabot_done:1288666730595618868> Creating Scoreboard
+- ${exportEmoji} Exporting
+- <a:snallabot_done:1288666730595618868> Logging`})
+}
+
+async function clearGameChannels(client: DiscordClient, db: Firestore, token: string, guild_id: string, settings: LeagueSettings, author: UserId) {
+    client.editOriginalInteraction(token, { content: `Clearing Game Channels...` })
+    const weekStates = settings.commands.game_channel?.weekly_states || {}
+    const channelsToClear = Object.entries(weekStates).flatMap(entry => {
+        const weekState = entry[1]
+        return Object.values(weekState.channel_states)
+    }).map(channelStates => {
+        return channelStates.channel
+    })
+    await Promise.all(Object.keys(weekStates).map(async weekKey => {
+        db.collection("league_settings").doc(guild_id).set({
+            [`commands.game_channels.weekly_states.${weekKey}.channel_states`]: FieldValue.delete()
+        })
+
+    }))
+    try {
+        if (settings.commands.logger?.channel) {
+            client.editOriginalInteraction(token, { content: `Logging Game Channels...` })
+            const logger = createLogger(settings.commands.logger)
+            await logger.logChannels(channelsToClear, client)
+            await logger.logUsedCommand("game_channels clear", author, client)
+        } else {
+            await Promise.all(channelsToClear.map(async channel => {
+                return await client.requestDiscord(`/channels/${channel.id}`, { method: "DELETE" })
+            }))
+        }
+        client.editOriginalInteraction(token, { content: `Game Channels Cleared` })
+    } catch (e) {
+        client.editOriginalInteraction(token, { content: `Game Channels could not be cleared properly, Error: ${e}` })
+    }
 }
 
 export default {
     async handleCommand(command: Command, client: DiscordClient, db: Firestore, ctx: ParameterizedContext) {
-        const { guild_id } = command
+        const { guild_id, token, member } = command
+        const author: UserId = { id: member.user.id, id_type: DiscordIdType.USER }
         if (!command.data.options) {
             throw new Error("game channels command not defined properly")
         }
@@ -253,7 +298,7 @@ export default {
                 if (subCommand === "superbowl") {
                     return 23
                 }
-            })()
+            })() || -1
             const categoryOverride = (() => {
                 if (subCommand === "create") {
                     return (gameChannelsCommand.options?.[1] as APIApplicationCommandInteractionDataChannelOption)?.value
@@ -269,10 +314,11 @@ export default {
             }
             const category = categoryOverride ? categoryOverride : leagueSettings.commands.game_channel.default_category.id
             respond(ctx, deferMessage())
+            createGameChannels(client, db, token, guild_id, leagueSettings, week, category, author)
         } else if (subCommand === "clear") {
-        } else {
+            respond(ctx, deferMessage())
+            clearGameChannels(client, db, token, guild_id, leagueSettings, author)
         }
-        respond(ctx, createMessageResponse(`bot is working`))
         throw new Error(`game_channels ${subCommand} not implemented`)
 
     },
