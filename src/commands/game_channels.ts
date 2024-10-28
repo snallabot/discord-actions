@@ -293,6 +293,7 @@ export default {
                     if (week < 1 || week > 23 || week === 22) {
                         throw new Error("Invalid week number. Valid weeks are week 1-18 and use specific playoff commands or playoff week numbers: Wildcard = 19, Divisional = 20, Conference Championship = 21, Super Bowl = 23")
                     }
+                    return week
                 }
                 if (subCommand === "wildcard") {
                     return 19
@@ -308,7 +309,7 @@ export default {
                 }
             })()
             if (!week) {
-                throw new Error("Invalid Week found")
+                throw new Error("Invalid Week found " + week)
             }
             const categoryOverride = (() => {
                 if (subCommand === "create") {
