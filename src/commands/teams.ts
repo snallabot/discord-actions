@@ -137,7 +137,7 @@ export default {
                             channel: { id: channel, id_type: DiscordIdType.CHANNEL },
                             messageId: { id: messageData.id, id_type: DiscordIdType.MESSAGE },
                             useRoleUpdates: useRoleUpdates,
-                            assignments: leagueSettings.commands.teams?.assignments || {},
+                            assignments: leagueSettings?.commands?.teams?.assignments || {},
                         }
                     }
                 }, { merge: true })
