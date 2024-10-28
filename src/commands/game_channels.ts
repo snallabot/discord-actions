@@ -237,11 +237,9 @@ async function clearGameChannels(client: DiscordClient, db: Firestore, token: st
         })
         await Promise.all(Object.keys(weekStates).map(async weekKey => {
             db.collection("league_settings").doc(guild_id).update({
-                [`commands.game_channel.weekly_states.${weekKey}.channel_states`]: FieldValue.delete()
+                [`commands.game_channel.weekly_states.${weekKey}.channel_states`]: []
             })
-
         }))
-
         if (settings.commands.logger?.channel) {
             await client.editOriginalInteraction(token, { content: `Logging Game Channels...` })
             const logger = createLogger(settings.commands.logger)
