@@ -56,9 +56,10 @@ export default (config: LoggerConfiguration) => ({
             const channelInfo = (await channelInfoRes.json()) as APIChannel
             const channelName = channelInfo.name
             await client.requestDiscord(`channels/${channel.id}`, {
-                method: "GET",
+                method: "DELETE",
             }) // delete channel and then start logging
-            const res = await client.requestDiscord(`channels/${channel.id}/threads`, {
+            const loggerChannel = config.channel.id
+            const res = await client.requestDiscord(`channels/${loggerChannel}/threads`, {
                 method: "POST",
                 body: {
                     name: `${channelName} channel log`,
