@@ -175,7 +175,7 @@ async function createGameChannels(client: DiscordClient, db: Firestore, token: s
 
         const season = weekSchedule[0].seasonIndex
         const scoreboardMessage = formatScoreboard(week, season, weekSchedule, teamMap, assignments)
-        const res = await client.requestDiscord(`channels/${settings.commands.game_channel?.scoreboard_channel}/messages`, { method: "POST", body: { content: scoreboardMessage } })
+        const res = await client.requestDiscord(`channels/${settings.commands.game_channel?.scoreboard_channel.id}/messages`, { method: "POST", body: { content: scoreboardMessage } })
         const message = await res.json() as APIMessage
         const weeklyState: WeekState = { week: week, seasonIndex: season, scoreboard: { id: message.id, id_type: DiscordIdType.MESSAGE }, channel_states: channelsMap }
         const weekKey = `season${season}_week${week}`
