@@ -285,7 +285,7 @@ export default {
                         default_category: { id: gameChannelCategory, id_type: DiscordIdType.CATEGORY },
                         scoreboard_channel: { id: scoreboardChannel, id_type: DiscordIdType.CHANNEL },
                         wait_ping: waitPing,
-                        weekly_states: leagueSettings.commands.game_channel?.weekly_states || {}
+                        weekly_states: leagueSettings?.commands?.game_channel?.weekly_states || {}
                     }
                 }
             }, { merge: true })
